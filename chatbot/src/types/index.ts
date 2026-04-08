@@ -16,6 +16,7 @@ export interface ChatRequest {
   message: string;
   session_id?: string;
   model?: string;
+  project_id?: string;
 }
 
 export interface ChatResponse {

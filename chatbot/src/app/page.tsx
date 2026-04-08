@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/features/chat/hooks/use-chat";
 import { useSessionManager } from "@/features/session/hooks/use-session-manager";
+import { useDocuments } from "@/features/documents/api/use-documents";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { DEFAULT_MODEL } from "@/lib/constants";
 import { ChatHeader } from "@/components/chat/chat-header";
@@ -12,6 +13,9 @@ import { SessionSidebar } from "@/components/session/session-sidebar";
 import { DeleteConfirmDialog } from "@/components/session/delete-confirm-dialog";
 import { TypingIndicator } from "@/components/common/typing-indicator";
 import { EmptyState } from "@/components/common/empty-state";
+
+// TODO: Replace with project selector UI later
+const DEMO_PROJECT_ID = "693de5d2-57a4-4947-aca2-b98467df1556";
 
 export default function Home() {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
@@ -32,7 +36,18 @@ export default function Home() {
     setActiveSessionId,
   } = useSessionManager({ onMessagesLoaded: setMessages });
 
+  const {
+    documents,
+    isLoading: documentsLoading,
+    fetchDocuments,
+  } = useDocuments(DEMO_PROJECT_ID);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load documents on mount
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   // Auto-scroll when messages change or loading state changes
   useEffect(() => {
@@ -50,6 +65,7 @@ export default function Home() {
         message,
         sessionId: activeSessionId ?? undefined,
         model: selectedModel,
+        projectId: DEMO_PROJECT_ID,
       });
 
       if (sessionId && !activeSessionId) {
@@ -85,7 +101,7 @@ export default function Home() {
         Skip to chat
       </a>
 
-      {/* Sidebar: always rendered on mobile (Sheet handles visibility), conditionally on desktop */}
+      {/* Sidebar */}
       {(isMobile || sidebarOpen) && (
         <SessionSidebar
           sessions={sessions}
@@ -96,6 +112,10 @@ export default function Home() {
           isOpen={sidebarOpen}
           onOpenChange={setSidebarOpen}
           isMobile={isMobile}
+          projectId={DEMO_PROJECT_ID}
+          documents={documents}
+          documentsLoading={documentsLoading}
+          onDocumentUploadComplete={fetchDocuments}
         />
       )}
 

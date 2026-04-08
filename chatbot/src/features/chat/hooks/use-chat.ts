@@ -13,6 +13,7 @@ interface UseChatReturn {
     message: string;
     sessionId?: string;
     model?: string;
+    projectId?: string;
   }) => Promise<string | null>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
@@ -30,6 +31,7 @@ export function useChat(): UseChatReturn {
       message: string;
       sessionId?: string;
       model?: string;
+      projectId?: string;
     }): Promise<string | null> => {
       const userMessage: Message = {
         id: crypto.randomUUID(),
@@ -45,6 +47,7 @@ export function useChat(): UseChatReturn {
           message: params.message,
           session_id: params.sessionId,
           model: params.model,
+          project_id: params.projectId,
         });
 
         const assistantMessage: Message = {

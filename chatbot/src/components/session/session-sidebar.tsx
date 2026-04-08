@@ -11,6 +11,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { SessionItem } from "./session-item";
+import { DocumentList } from "./document-list";
+
+interface DocumentEntry {
+  id: string;
+  path: string;
+  name: string;
+  type: string;
+  sizeBytes: number | null;
+}
 
 interface SessionSidebarProps {
   sessions: Session[];
@@ -21,6 +30,11 @@ interface SessionSidebarProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isMobile: boolean;
+  // Document props
+  projectId: string;
+  documents: DocumentEntry[];
+  documentsLoading: boolean;
+  onDocumentUploadComplete: () => void;
 }
 
 function SidebarContent({
@@ -29,16 +43,14 @@ function SidebarContent({
   onSelectSession,
   onDeleteSession,
   onNewChat,
-}: Pick<
-  SessionSidebarProps,
-  | "sessions"
-  | "activeSessionId"
-  | "onSelectSession"
-  | "onDeleteSession"
-  | "onNewChat"
->) {
+  projectId,
+  documents,
+  documentsLoading,
+  onDocumentUploadComplete,
+}: Omit<SessionSidebarProps, "isOpen" | "onOpenChange" | "isMobile">) {
   return (
     <div className="flex flex-col h-full w-[260px]">
+      {/* New Chat Button */}
       <div className="p-3">
         <Button
           variant="outline"
@@ -49,47 +61,65 @@ function SidebarContent({
           New Chat
         </Button>
       </div>
+
       <Separator />
-      <ScrollArea className="flex-1">
-        <div className="flex flex-col gap-1 p-2">
-          {sessions.map((session) => (
-            <SessionItem
-              key={session.id}
-              title={session.title}
-              isActive={session.id === activeSessionId}
-              onSelect={() => onSelectSession(session.id)}
-              onDelete={() => onDeleteSession(session.id)}
-            />
-          ))}
+
+      {/* Chat Sessions */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="px-3 py-2">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Chats
+          </span>
         </div>
-      </ScrollArea>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-1 px-2 pb-2">
+            {sessions.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                No conversations yet
+              </p>
+            ) : (
+              sessions.map((session) => (
+                <SessionItem
+                  key={session.id}
+                  title={session.title}
+                  isActive={session.id === activeSessionId}
+                  onSelect={() => onSelectSession(session.id)}
+                  onDelete={() => onDeleteSession(session.id)}
+                />
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <Separator />
+
+      {/* Documents Section */}
+      <div className="flex-1 min-h-0">
+        <DocumentList
+          documents={documents}
+          projectId={projectId}
+          isLoading={documentsLoading}
+          onUploadComplete={onDocumentUploadComplete}
+        />
+      </div>
     </div>
   );
 }
 
-export function SessionSidebar({
-  sessions,
-  activeSessionId,
-  onSelectSession,
-  onDeleteSession,
-  onNewChat,
-  isOpen,
-  onOpenChange,
-  isMobile,
-}: SessionSidebarProps) {
-  const contentProps = {
-    sessions,
-    activeSessionId,
-    onSelectSession,
-    onDeleteSession,
-    onNewChat,
-  };
+export function SessionSidebar(props: SessionSidebarProps) {
+  const {
+    isOpen,
+    onOpenChange,
+    isMobile,
+    ...contentProps
+  } = props;
 
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent side="left" className="w-[260px] p-0">
-          <SheetTitle className="sr-only">Chat sessions</SheetTitle>
+          <SheetTitle className="sr-only">Chat sessions & Documents</SheetTitle>
           <SidebarContent {...contentProps} />
         </SheetContent>
       </Sheet>

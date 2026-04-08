@@ -26,6 +26,7 @@ export function useSendMessage(): UseSendMessageReturn {
             message: params.message,
             session_id: params.session_id,
             model: params.model,
+            project_id: params.project_id,
           }),
         });
 
