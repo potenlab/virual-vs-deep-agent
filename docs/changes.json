@@ -1,0 +1,185 @@
+{
+  "updatedAt": "2026-04-08T00:00:00.000Z",
+  "summary": {
+    "totalBatches": 1,
+    "totalTasks": 14,
+    "completed": 14,
+    "remaining": 0
+  },
+  "batches": [
+    {
+      "id": "C1",
+      "description": "Implement PRD v2 Milestones 2-5: Virtual FS, Agent Tools, UI Enhancements, Seed Data",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "C1.1",
+          "title": "Add VFS tables to Drizzle schema + migrate",
+          "description": "Add projects, documents, todos, events tables with indexes and FTS to src/lib/db/schema.ts. Generate and apply migration.",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/db/schema.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.2",
+          "title": "Add VFS types to shared types",
+          "description": "Add Project, Document, Todo, Event, SearchResult interfaces to src/types/index.ts",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/types/index.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.3",
+          "title": "Install just-bash dependency",
+          "description": "npm install just-bash for Virtual FS engine",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "package.json"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.4",
+          "title": "Implement CacheLayer",
+          "description": "TTL-based in-memory cache at src/lib/fs/cache-layer.ts",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/lib/fs/cache-layer.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.5",
+          "title": "Implement path-utils",
+          "description": "Path normalization, dirname, basename, join utilities at src/lib/fs/path-utils.ts",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/lib/fs/path-utils.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.6",
+          "title": "Implement TreeBuilder",
+          "description": "Directory tree bootstrapping from PostgreSQL at src/lib/fs/tree-builder.ts. Uses Drizzle to query documents table once, builds in-memory Map for ls/find/stat.",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/fs/tree-builder.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.7",
+          "title": "Implement GrepOptimizer",
+          "description": "Coarse (PostgreSQL ILIKE) → cache → fine (regex) grep at src/lib/fs/grep-optimizer.ts",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/fs/grep-optimizer.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.8",
+          "title": "Implement VirtualFs (IFileSystem)",
+          "description": "Full IFileSystem implementation backed by PostgreSQL at src/lib/fs/virtual-fs.ts. Composes TreeBuilder, CacheLayer, GrepOptimizer.",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/fs/virtual-fs.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.9",
+          "title": "Implement agent tools",
+          "description": "Create execute_command, create_task, update_task, create_event, search_docs tools at src/lib/agent/tools.ts using LangChain tool() format",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/agent/tools.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.10",
+          "title": "Update system prompt for VFS",
+          "description": "Rewrite system-prompt.ts with Virtual FS awareness, tool descriptions, and project context",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/lib/agent/system-prompt.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.11",
+          "title": "Wire tools into DeepAgent",
+          "description": "Update agent.ts to accept projectId, initialize VirtualFs, pass tools to createDeepAgent. Update /api/chat route to pass projectId.",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/agent/agent.ts",
+            "src/app/api/chat/route.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.12",
+          "title": "Seed script for demo project",
+          "description": "Create scripts/seed-project.ts that inserts a demo project with documents, todos, and events into PostgreSQL",
+          "status": "completed",
+          "complexity": "high",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "scripts/seed-project.ts"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.13",
+          "title": "Generate migration and verify build",
+          "description": "Run drizzle-kit generate for new tables, then npx tsc --noEmit to verify compilation",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "drizzle/"
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "C1.14",
+          "title": "Apply migration to local database",
+          "description": "Run drizzle-kit migrate to apply the new tables to PostgreSQL",
+          "status": "completed",
+          "complexity": "low",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [],
+          "dependencies": []
+        }
+      ]
+    }
+  ]
+}

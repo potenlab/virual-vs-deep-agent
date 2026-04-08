@@ -1,0 +1,631 @@
+{
+  "project": "Virtual FS + AI Agent (Simple Chatbot)",
+  "generatedAt": "2026-04-08T00:00:00.000Z",
+  "summary": {
+    "totalPhases": 6,
+    "totalTasks": 39,
+    "lowComplexity": 18,
+    "highComplexity": 21,
+    "completed": 39,
+    "remaining": 0
+  },
+  "phases": [
+    {
+      "id": 0,
+      "name": "Foundation",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "0.1",
+          "title": "Initialize Next.js project",
+          "description": "Create Next.js 15 app with TypeScript, Tailwind, App Router, src/ directory using create-next-app CLI",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single CLI command to scaffold project; no custom logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/layout.tsx",
+            "src/app/page.tsx",
+            "src/app/globals.css",
+            "package.json",
+            "tsconfig.json",
+            "next.config.ts",
+            "tailwind.config.ts"
+          ],
+          "dependencies": [],
+          "verify": "npm run dev starts on localhost:3000 without errors; page renders default Next.js welcome"
+        },
+        {
+          "id": "0.2",
+          "title": "Install core dependencies",
+          "description": "Install runtime dependencies: deepagents, @langchain/openai, @langchain/core, zod, lucide-react, sonner",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single npm install command; no code changes",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "package.json",
+            "package-lock.json"
+          ],
+          "dependencies": [],
+          "verify": "npm ls deepagents @langchain/openai lucide-react sonner shows all installed, no peer dep errors"
+        },
+        {
+          "id": "0.3",
+          "title": "Initialize shadcn/ui",
+          "description": "Run shadcn init with Zinc theme and CSS variables, then add all required UI primitives (button, textarea, select, scroll-area, alert-dialog, sheet, dropdown-menu, separator, tooltip, sonner)",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "CLI commands to scaffold shadcn config and components; no custom logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "components.json",
+            "src/lib/utils.ts",
+            "src/app/globals.css",
+            "src/components/ui/button.tsx",
+            "src/components/ui/textarea.tsx",
+            "src/components/ui/select.tsx",
+            "src/components/ui/scroll-area.tsx",
+            "src/components/ui/alert-dialog.tsx",
+            "src/components/ui/sheet.tsx",
+            "src/components/ui/dropdown-menu.tsx",
+            "src/components/ui/separator.tsx",
+            "src/components/ui/tooltip.tsx",
+            "src/components/ui/sonner.tsx"
+          ],
+          "dependencies": [],
+          "verify": "src/components/ui/button.tsx exists; import { Button } in page.tsx renders a button with correct styling"
+        },
+        {
+          "id": "0.4",
+          "title": "Environment configuration",
+          "description": "Create .env.local with OPENROUTER_API_KEY and DEFAULT_MODEL. Create typed env accessor in src/config/env.ts that reads and validates these values. Ensure .env.local is in .gitignore.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Two small files with simple env variable reading and validation; no business logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            ".env.local",
+            "src/config/env.ts"
+          ],
+          "dependencies": [],
+          "verify": "Import env config in a test file; values are accessible and typed"
+        },
+        {
+          "id": "0.5",
+          "title": "Design tokens and global styles",
+          "description": "Update globals.css with shadcn theme variables (light + dark), Tailwind directives, and typing-dot keyframes animation. Add Inter font via next/font/google in layout.tsx.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "CSS variable definitions and font configuration; single file changes with no logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/globals.css",
+            "src/app/layout.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Page renders with Inter font; dark mode toggle via class='dark' on html changes theme colors"
+        },
+        {
+          "id": "0.6",
+          "title": "Constants file",
+          "description": "Create constants file exporting MODEL_LIST array of available model strings and DEFAULT_MODEL fallback string",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single file with hardcoded constant arrays; no logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/lib/constants.ts"
+          ],
+          "dependencies": [],
+          "verify": "File imports cleanly; MODEL_LIST has at least 3 entries"
+        },
+        {
+          "id": "0.7",
+          "title": "Shared types",
+          "description": "Define and export Session (id, title, createdAt) and Message (id, role, content, model?, timestamp) interfaces, plus API request/response types (ChatRequest, ChatResponse, etc.)",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single file with TypeScript interface definitions; no logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/types/index.ts"
+          ],
+          "dependencies": [],
+          "verify": "Types import without error in a scratch file"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Agent Core",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "1.1",
+          "title": "OpenRouter LLM config",
+          "description": "Export a createLLM(model?) function that returns a ChatOpenAI instance configured with OpenRouter baseURL, API key from env, modelName defaulting to DEFAULT_MODEL, temperature 0.7, maxTokens 4096",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Requires correct integration with LangChain ChatOpenAI and OpenRouter API configuration; must handle env vars and model defaults",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/agent/openrouter.ts"
+          ],
+          "dependencies": [],
+          "verify": "Import createLLM() in a test script; call .invoke('Hello') and receive a string response from OpenRouter"
+        },
+        {
+          "id": "1.2",
+          "title": "System prompt",
+          "description": "Write a general-purpose assistant system prompt stored as a const string in agent.ts. Short: identity, capabilities, tone (helpful, concise).",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single const string definition; no code logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/lib/agent/agent.ts"
+          ],
+          "dependencies": [],
+          "verify": "Prompt is a non-empty string; reads naturally as an assistant introduction"
+        },
+        {
+          "id": "1.3",
+          "title": "DeepAgent setup with tools",
+          "description": "Export createAgent(model?) and invokeAgent(agent, messages) functions. Creates a DeepAgent instance with OpenRouter LLM, system prompt, and empty tools array. Converts internal Message[] to LangChain format for invocation.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Multi-system integration: wiring DeepAgent framework with LangChain LLM, message format conversion, and conversation history handling",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/agent/agent.ts"
+          ],
+          "dependencies": [],
+          "verify": "Import and call createAgent() then invoke with a test message; agent returns a coherent response"
+        },
+        {
+          "id": "1.4",
+          "title": "REPL test script",
+          "description": "A runnable Node.js script (npx tsx scripts/test-repl.ts) that creates an agent, sends a hardcoded question, prints the response, then optionally enters a readline loop for interactive testing.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single standalone script; no integration with the app; straightforward readline usage",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "scripts/test-repl.ts"
+          ],
+          "dependencies": [],
+          "verify": "Run the script; see a printed response from the agent. Ask a follow-up; context is maintained."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "API Routes",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "2.1",
+          "title": "In-memory session store",
+          "description": "Export a singleton SessionStore class using Map<string, SessionData>. Methods: createSession, getSession, listSessions, deleteSession, addMessage, getMessages, updateSessionTitle. Uses globalThis pattern to survive Next.js hot-reload.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Singleton pattern with globalThis, multiple CRUD methods, UUID generation, sorted listing, and session-message relationship management",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/lib/session-store.ts"
+          ],
+          "dependencies": [],
+          "verify": "Instantiate store; create a session; add a message; retrieve it; delete it. All operations return expected data."
+        },
+        {
+          "id": "2.2",
+          "title": "POST /api/chat route",
+          "description": "Accept JSON body { message, session_id?, model? }. Validate input (required message, max 10k chars, model in MODEL_LIST). Create/find session, add user message, invoke agent with history, add assistant response, auto-title on first message. Return { session_id, message, model }.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Complex business logic: input validation, session creation/lookup, agent invocation, auto-titling, error handling for multiple failure modes (400, 404, 429, 500, 502)",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/app/api/chat/route.ts"
+          ],
+          "dependencies": [],
+          "verify": "curl -X POST localhost:3000/api/chat -H 'Content-Type: application/json' -d '{\"message\":\"Hello\"}' returns JSON with session_id, message, and model"
+        },
+        {
+          "id": "2.3",
+          "title": "GET /api/sessions route",
+          "description": "Return { sessions: Session[] } from the session store, sorted by createdAt descending",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single route handler that calls one store method and returns the result; no business logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/api/sessions/route.ts"
+          ],
+          "dependencies": [],
+          "verify": "curl localhost:3000/api/sessions returns { sessions: [] } initially; after creating sessions via /api/chat, returns populated list"
+        },
+        {
+          "id": "2.4",
+          "title": "POST /api/sessions route",
+          "description": "Create a new empty session in the store. Return { session: Session } with status 201.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple route handler in same file as GET; calls one store method",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/api/sessions/route.ts"
+          ],
+          "dependencies": [],
+          "verify": "curl -X POST localhost:3000/api/sessions returns a new session object with id, title: 'New Chat', createdAt"
+        },
+        {
+          "id": "2.5",
+          "title": "DELETE /api/sessions/[id] route",
+          "description": "Delete the session with the given id from the store. Return { success: true } or 404 if not found.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single route handler with simple lookup and delete; minimal error handling",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/api/sessions/[id]/route.ts"
+          ],
+          "dependencies": [],
+          "verify": "Create a session, delete it by id, verify GET /api/sessions no longer includes it"
+        },
+        {
+          "id": "2.6",
+          "title": "GET /api/sessions/[id]/messages route",
+          "description": "Return { messages: Message[] } for the given session, ordered by timestamp ascending. Return 404 if session not found.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single route handler with session lookup and message retrieval; minimal error handling",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/api/sessions/[id]/messages/route.ts"
+          ],
+          "dependencies": [],
+          "verify": "Send a chat message, then curl localhost:3000/api/sessions/{id}/messages returns the user + assistant messages"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Shared UI Components",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "3.1",
+          "title": "ChatBubble component",
+          "description": "Presentational component accepting role and content. User bubble: right-aligned with primary colors. Assistant bubble: left-aligned with Bot icon avatar and muted colors. Fade-in + slide-up animation on mount (200ms). Use React.memo for performance.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single presentational component with conditional styling; no business logic or state",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/chat/chat-bubble.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Render both variants in page.tsx; user bubble is right-aligned with primary colors; assistant bubble is left-aligned with muted colors and avatar icon"
+        },
+        {
+          "id": "3.2",
+          "title": "TypingIndicator component",
+          "description": "Renders three animated dots in an assistant-style bubble layout. Uses CSS @keyframes typing-dot with staggered animation-delay (0ms, 150ms, 300ms). Dots are w-2 h-2 rounded-full, 600ms cycle infinite.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single presentational component with CSS animation; no logic or state",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/common/typing-indicator.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Render the component; three dots bounce with visible stagger; looks like an assistant bubble"
+        },
+        {
+          "id": "3.3",
+          "title": "ChatInput component",
+          "description": "Auto-growing textarea (min 1 row, max 6 rows) with Send button (icon-only). Enter sends and clears; Shift+Enter inserts newline. Send disabled when empty. aria-label on textarea. autoFocus on mount. Manages own inputValue state.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Internal state management, keyboard event handling (Enter vs Shift+Enter), auto-growing textarea behavior, accessibility attributes, and disabled state logic",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/components/chat/chat-input.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Type text, press Enter -- onSend fires with the text, input clears. Shift+Enter adds a newline. Empty input disables Send button."
+        },
+        {
+          "id": "3.4",
+          "title": "SessionSidebar component",
+          "description": "Fixed-width left panel (w-[260px]) with New Chat button and ScrollArea with SessionItem list. On mobile (<768px), rendered inside shadcn Sheet (side=left). Desktop: always visible with border-r. Semantic aside role=complementary.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Dual rendering modes (desktop vs mobile Sheet), multiple props, responsive behavior, composition with SessionItem list and ScrollArea",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/components/session/session-sidebar.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Desktop: sidebar renders at 260px with border-right. Mobile: sidebar hidden; toggle opens Sheet overlay. New Chat button calls onNewChat."
+        },
+        {
+          "id": "3.5",
+          "title": "SessionItem component",
+          "description": "Displays session title (truncated) with MessageSquare icon. Active state: bg-accent. Delete button (Trash2) appears on hover via group-hover. Click fires onSelect; delete click fires onDelete with stopPropagation. Keyboard: Enter triggers onSelect. React.memo for performance.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Multiple interactive behaviors: click handling with stopPropagation, hover-reveal delete button, keyboard support, active state styling, React.memo",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/components/session/session-item.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Render with active and inactive props; active has accent background. Hover reveals delete icon. Click fires correct callback."
+        },
+        {
+          "id": "3.6",
+          "title": "ModelSelector component",
+          "description": "shadcn Select with outline trigger showing current model name. Items from MODEL_LIST constant. Selected item has checkmark. Props: value, onValueChange. Width w-[200px].",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple wrapper around shadcn Select primitive with data from constants; no business logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/model/model-selector.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Renders with default model shown. Open dropdown; see all models from MODEL_LIST. Select a different model; onValueChange fires."
+        },
+        {
+          "id": "3.7",
+          "title": "ChatHeader component",
+          "description": "Sticky header (h-14, sticky top-0, backdrop-blur). Left: sidebar toggle button with PanelLeftClose/PanelLeftOpen icon. Right: ModelSelector. Semantic header role=banner.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple presentational layout component composing existing components; no state or logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/chat/chat-header.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Header sticks to top on scroll. Toggle button fires onToggleSidebar. Model selector is positioned right."
+        },
+        {
+          "id": "3.8",
+          "title": "EmptyState component",
+          "description": "Centered flex column with Bot icon (48px), title 'Start a conversation', subtitle, and 2-3 suggested prompt buttons (outline) that call onPromptClick(text).",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple presentational component with static content and click callbacks; no state",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/common/empty-state.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Renders centered content. Clicking a suggested prompt fires the callback with the prompt text."
+        },
+        {
+          "id": "3.9",
+          "title": "DeleteConfirmDialog component",
+          "description": "shadcn AlertDialog with title 'Delete conversation?', description about permanent deletion, Cancel (outline) and Delete (destructive) actions. Props: open, onOpenChange, onConfirm.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple wrapper around shadcn AlertDialog primitive with static text; no business logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/components/session/delete-confirm-dialog.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Open dialog; Cancel closes without action. Delete calls onConfirm and closes."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Features (Business Logic)",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "4.1",
+          "title": "Chat feature -- useSendMessage hook",
+          "description": "Export useSendMessage() hook that calls POST /api/chat with { message, session_id, model }. Returns { sendMessage, isLoading, error }. Uses fetch directly. Manages isLoading and error state. Resets error on each new call.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "API integration hook with state management (loading, error), fetch wrapper pattern, error handling for multiple HTTP status codes",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/features/chat/api/use-send-message.ts"
+          ],
+          "dependencies": [],
+          "verify": "Call sendMessage('Hello') from a component; network tab shows POST to /api/chat; response data is returned."
+        },
+        {
+          "id": "4.2",
+          "title": "Chat feature -- useChat hook",
+          "description": "Orchestrates chat experience: manages messages state array, isLoading, error. On send: optimistically appends user message, calls useSendMessage, appends assistant response. On error: shows toast via sonner. Returns sendMessage that resolves with session_id, and setMessages for session switching.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Complex state orchestration: optimistic updates, composing useSendMessage, error handling with toast, message array management, exposing setMessages for external use",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/features/chat/hooks/use-chat.ts"
+          ],
+          "dependencies": [],
+          "verify": "Use in page.tsx; send a message; user bubble appears immediately; typing indicator shows; assistant bubble appears after response."
+        },
+        {
+          "id": "4.3",
+          "title": "Session feature -- useSessions hook",
+          "description": "Export useSessions() hook with methods: fetchSessions (GET), createSession (POST), deleteSession (DELETE), fetchMessages (GET messages). Returns sessions state, isLoading, error, and all methods.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Multiple API endpoints in one hook, state management for session list, CRUD operations with error handling and toast notifications",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/features/session/api/use-sessions.ts"
+          ],
+          "dependencies": [],
+          "verify": "Call fetchSessions() from a component; sessions state populates. Create and delete sessions successfully."
+        },
+        {
+          "id": "4.4",
+          "title": "Session feature -- useSessionManager hook",
+          "description": "Orchestrates session management: tracks activeSessionId, handles createSession (sets active, clears messages), selectSession (sets active, fetches messages), deleteSession (confirm, delete, switch to most recent or null). On app init: fetches sessions, selects most recent.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Complex orchestration: composes useSessions, manages active state, handles session switching with message loading, deletion with fallback logic, initialization on mount",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/features/session/hooks/use-session-manager.ts"
+          ],
+          "dependencies": [],
+          "verify": "Create a session; it becomes active. Switch sessions; messages load. Delete active session; app switches to another or shows empty state."
+        },
+        {
+          "id": "4.5",
+          "title": "Feature types",
+          "description": "Create feature-specific type files that re-export or extend shared types. Chat types: SendMessageRequest, SendMessageResponse. Session types: SessionsResponse, SessionResponse, MessagesResponse.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Simple type re-exports and interface definitions; no logic",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/features/chat/types/index.ts",
+            "src/features/session/types/index.ts"
+          ],
+          "dependencies": [],
+          "verify": "Types import cleanly from feature directories."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Integration & Polish",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "5.1",
+          "title": "Main page assembly",
+          "description": "Compose the full chat interface in page.tsx. Layout: SessionSidebar (left) + main area (header + message thread + input). Uses useSessionManager for session state and useChat for message state. useMediaQuery for responsive sidebar. Auto-scroll to bottom on new message with IntersectionObserver guard. Semantic structure with aria-live, role=log, role=main.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Wires all hooks and components together: useChat, useSessionManager, useMediaQuery, selectedModel state, sidebarOpen state, auto-scroll logic with IntersectionObserver, and handleSend flow with session refresh",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/app/page.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Full app renders: sidebar with sessions, header with model selector, chat area with messages or empty state, input bar at bottom. All interactions work end-to-end."
+        },
+        {
+          "id": "5.2",
+          "title": "Root layout and providers",
+          "description": "Set html lang=en with Inter font via next/font/google. Include Toaster (sonner) for toast notifications. Set metadata title 'Simple Chatbot'. Dark mode support via class-based toggling with suppressHydrationWarning.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "Single file layout configuration; standard Next.js boilerplate with font and toaster setup",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/layout.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Page has correct lang attribute. Toast notifications render when triggered. Font is Inter."
+        },
+        {
+          "id": "5.3",
+          "title": "API wiring and error handling",
+          "description": "Ensure all API calls handle: 200 (success), 404 (session not found), 429 (rate limit toast), 500 (server error toast). Network offline detection shows inline banner. Loading states show typing indicator for chat.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Cross-cutting concern across all feature hooks; requires implementing error handling matrix across multiple files and adding offline detection",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/features/chat/api/use-send-message.ts",
+            "src/features/chat/hooks/use-chat.ts",
+            "src/features/session/api/use-sessions.ts"
+          ],
+          "dependencies": [],
+          "verify": "Kill the dev server and try to send a message; error toast appears. Send rapid requests; 429 handling works if OpenRouter rate-limits."
+        },
+        {
+          "id": "5.4",
+          "title": "Accessibility implementation",
+          "description": "Add skip link 'Skip to chat' at top of page. Ensure all icon-only buttons have aria-label. aria-live=polite on message thread. aria-busy=true while loading. role=log on message container. Focus returns to input after sending. Escape closes overlays. Proper tab order.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Cross-cutting changes across multiple components; requires skip link, ARIA attributes, focus management, keyboard navigation, and tab order verification",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/app/page.tsx",
+            "src/components/chat/chat-input.tsx",
+            "src/components/chat/chat-header.tsx",
+            "src/components/session/session-item.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Navigate entire app with keyboard only. Run axe DevTools or Lighthouse accessibility audit; score >= 90. Screen reader announces new messages."
+        },
+        {
+          "id": "5.5",
+          "title": "Animations and micro-interactions",
+          "description": "Message fade-in + slide-up (200ms). Typing indicator dot bounce (600ms, staggered). Sidebar slide-in on mobile (300ms via shadcn Sheet). Button hover transitions (150ms). Session active highlight transition. Auto-scroll to bottom with smooth behavior, respecting user scroll position.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Multiple animation systems (CSS keyframes, transitions, scroll behavior), auto-scroll with user scroll detection requiring IntersectionObserver",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/app/globals.css",
+            "src/components/chat/chat-bubble.tsx",
+            "src/components/common/typing-indicator.tsx",
+            "src/app/page.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Send a message; bubble fades in smoothly. Typing dots bounce visibly. Mobile sidebar slides in. Scroll up, receive a message; scroll position preserved."
+        },
+        {
+          "id": "5.6",
+          "title": "Dark mode",
+          "description": "Ensure shadcn Zinc theme dark mode variables work correctly. Default to system preference via prefers-color-scheme. All components use CSS variable-based colors for automatic dark mode support.",
+          "status": "completed",
+          "complexity": "low",
+          "complexityReason": "shadcn handles dark mode via CSS variables out of the box; just needs verification and optional system preference detection",
+          "agent": "potenlab-small-coder",
+          "outputFiles": [
+            "src/app/globals.css",
+            "src/app/layout.tsx"
+          ],
+          "dependencies": [],
+          "verify": "Set system to dark mode; entire app switches to dark theme. All text remains readable; contrast ratios maintained."
+        },
+        {
+          "id": "5.7",
+          "title": "useMediaQuery hook",
+          "description": "Custom hook that returns boolean for a given media query string. Uses window.matchMedia with change event listener. Handles SSR by defaulting to false. Used to detect mobile (max-width: 768px) for sidebar default state.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "SSR-safe implementation with matchMedia API, event listener cleanup, and hydration considerations",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [
+            "src/hooks/use-media-query.ts"
+          ],
+          "dependencies": [],
+          "verify": "On desktop, useMediaQuery('(max-width: 768px)') returns false. On mobile viewport, returns true."
+        },
+        {
+          "id": "5.8",
+          "title": "Final integration test (manual)",
+          "description": "End-to-end manual test covering all user flows: empty state with prompts, send message and receive response, follow-up maintains context, create new session, switch sessions, delete session with confirm dialog, change model, mobile responsive sidebar, keyboard navigation, dark mode.",
+          "status": "completed",
+          "complexity": "high",
+          "complexityReason": "Comprehensive manual testing across 10 user flows requiring all features to be wired correctly; debugging and fixing integration issues",
+          "agent": "potenlab-high-coder",
+          "outputFiles": [],
+          "dependencies": [],
+          "verify": "All 10 test scenarios from dev-plan pass: empty state, send message, follow-up, new session, switch session, delete session, change model, mobile responsive, keyboard nav, dark mode."
+        }
+      ]
+    }
+  ]
+}

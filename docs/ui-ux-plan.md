@@ -2,13 +2,15 @@
 
 Generated: 2026-04-08
 Source PRD: docs/prd.md
-Design System: Poten Agent Minimal
+Design System: shadcn/ui defaults (speed-to-market priority)
 
 ---
 
 ## Executive Summary
 
-This design plan covers the **test web UI** for the Virtual FS + AI Agent project (Phase 5.4 of the PRD). The interface is a simple chat application with session management -- a developer-facing test harness, not a consumer product. The design prioritizes speed to market, clarity, and functional completeness over visual polish. The UI consists of two core surfaces: a **session sidebar** and a **chat panel** with streaming response support. The entire UI targets a single `test-ui/` directory with `index.html` and `app.js` (or a lightweight React setup).
+This plan defines the UI/UX for a lightweight chatbot application powered by DeepAgents and OpenRouter, built with Next.js 15 (App Router) and Tailwind CSS. The application is a single-page chat interface with session management (sidebar) and model selection (dropdown). The design strategy prioritizes speed to market by leveraging shadcn/ui defaults with minimal customization, while maintaining WCAG 2.1 AA accessibility compliance.
+
+The core experience is a clean, focused chat interface where users send messages and receive AI-generated responses, organized by sessions, with the ability to switch LLM models on the fly.
 
 ---
 
@@ -16,78 +18,83 @@ This design plan covers the **test web UI** for the Virtual FS + AI Agent projec
 
 ### 1.1 Problem Statement
 
-**Business Goal:** Validate the Virtual FS + AI Agent engine end-to-end through a web interface before integrating with PotenManager.
+**Business Goal:** Deliver a functional chatbot interface that demonstrates DeepAgents + OpenRouter integration with minimal development overhead.
 
-**User Need:** Developers need to send chat messages to the agent, observe streaming responses, switch between sessions, and verify that agent actions (task creation, file reads) are reflected in Supabase.
+**User Need:** Users need a fast, intuitive way to converse with an AI assistant, manage multiple conversation threads, and optionally switch between LLM models.
 
-**Design Challenge:** How might we build the simplest possible chat interface that supports session management and streaming responses without slowing down backend development?
+**Design Challenge:** How might we create a chat experience that feels familiar and responsive while supporting session management and model switching without adding complexity?
 
 ### 1.2 User Personas
 
-#### Primary Persona: Solo Developer / Project Author
+#### Primary Persona: Dev-Curious User ("Alex")
 
 | Attribute | Details |
 |-----------|---------|
-| **Demographics** | Developer, high tech-savviness |
-| **Goals** | Test agent behavior, verify session persistence, debug tool calls |
-| **Pain Points** | Needs fast feedback loop; does not want to fight UI tooling |
-| **Behaviors** | Uses browser DevTools alongside the UI; reads raw API responses |
-| **Quote** | "I just need to see what the agent returns and confirm sessions work." |
+| **Demographics** | 25-40, developer or tech-adjacent professional, high tech-savviness |
+| **Goals** | Quickly test different LLM models, have productive conversations, organize chats by topic |
+| **Pain Points** | Cluttered UIs that get in the way of chatting; slow response feedback; losing conversation context |
+| **Behaviors** | Uses ChatGPT/Claude daily; prefers keyboard-first interaction; opens multiple threads for different topics |
+| **Quote** | "I just want to type, hit Enter, and get a response. Everything else should stay out of the way." |
 
-#### Secondary Persona: Technical Reviewer / Collaborator
+#### Secondary Persona: Casual Explorer ("Sam")
 
 | Attribute | Details |
 |-----------|---------|
-| **Demographics** | Developer or PM reviewing the agent capability |
-| **Goals** | Quickly understand what the agent can do, test specific prompts |
-| **Pain Points** | Needs clear indication of agent status (thinking, streaming, error) |
-| **Behaviors** | Tries edge cases, switches sessions to test context retention |
-| **Quote** | "Show me it remembers what I said earlier in this session." |
+| **Demographics** | 20-35, non-technical user exploring AI tools, moderate tech-savviness |
+| **Goals** | Have a conversation with AI, try different models to see differences, keep it simple |
+| **Pain Points** | Intimidated by technical configuration; confused by too many options; unsure what "models" mean |
+| **Behaviors** | Arrived via link or recommendation; will leave if the first interaction is confusing |
+| **Quote** | "I want it to work like texting someone, nothing more complicated." |
 
 ### 1.3 User Journey Map
 
 ```
-Journey: Test Agent via Chat UI
+Core Journey: Send a message and get a response
 
-Stage 1: Open UI
-|- Actions: Navigate to localhost or deployed URL
-|- Thoughts: "Is it connected? Is the API up?"
-|- Emotions: Neutral
-|- Opportunities: Show connection status indicator
+Stage 1: Landing
+|- Actions: User lands on the app (single page)
+|- Thoughts: "Is this ready to go? Where do I type?"
+|- Emotions: Neutral / slightly curious
+|- Pain Points: Blank screen with no guidance
+|- Opportunities: Show a welcoming empty state with suggested prompts
 
-Stage 2: Start or Select Session
-|- Actions: Click "New Session" or select existing session from sidebar
-|- Thoughts: "I want a fresh context" or "Let me continue where I left off"
-|- Emotions: Neutral
-|- Opportunities: Show session list with timestamps, clear active state
+Stage 2: First Message
+|- Actions: Types a message in the input, presses Enter
+|- Thoughts: "Did it send? Is it thinking?"
+|- Emotions: Anticipation
+|- Pain Points: No feedback that message was received; unclear loading
+|- Opportunities: Instant message bubble + animated typing indicator
 
-Stage 3: Send Message
-|- Actions: Type prompt, press Enter or click Send
-|- Thoughts: "Will the agent understand this? How long will it take?"
-|- Emotions: Expectant
-|- Opportunities: Streaming response, typing indicator, clear input affordance
+Stage 3: Response
+|- Actions: Reads the AI response
+|- Thoughts: "That was fast / useful. Let me ask a follow-up."
+|- Emotions: Satisfaction (if fast and relevant)
+|- Pain Points: Slow or stuck responses with no feedback
+|- Opportunities: Streaming text or clear "thinking" indicator
 
-Stage 4: Read Response
-|- Actions: Read streamed tokens, scroll, review agent tool usage
-|- Thoughts: "Did it use the right tool? Is the answer correct?"
-|- Emotions: Positive if correct, frustrated if wrong
-|- Opportunities: Show tool calls inline, format markdown, code blocks
+Stage 4: Continued Conversation
+|- Actions: Sends follow-up messages; scrolls to review history
+|- Thoughts: "I want to start a new topic without losing this one."
+|- Emotions: Engaged
+|- Pain Points: Cannot separate topics; losing context
+|- Opportunities: Session sidebar to create/switch conversations
 
-Stage 5: Verify / Debug
-|- Actions: Switch sessions, check Supabase, open DevTools
-|- Thoughts: "Did the task actually get created? Does session B still have its context?"
-|- Emotions: Satisfied if data matches
-|- Opportunities: Session switching with preserved scroll, clear session boundaries
+Stage 5: Model Exploration (Power Users)
+|- Actions: Opens model selector, switches to a different LLM
+|- Thoughts: "Let me see how this model answers differently."
+|- Emotions: Curiosity
+|- Pain Points: Unclear what models are available or what they do
+|- Opportunities: Simple dropdown with model names; optional description tooltip
 ```
 
 ### 1.4 Competitive Analysis
 
-| Reference | Strengths | Weaknesses | Takeaway |
-|-----------|-----------|------------|----------|
-| ChatGPT Web UI | Clean chat layout, streaming, session sidebar | Heavy, complex feature set | Adopt the 2-panel layout pattern |
-| Anthropic Console | Minimal, fast, markdown rendering | No session sidebar | Good reference for token streaming UX |
-| OpenRouter Playground | Model switching, raw JSON view | Sparse UX, no persistence | We need session persistence UI |
-| LangSmith Playground | Tool call visibility, trace view | Developer-only, complex | Show tool calls inline in chat |
+| Competitor | Strengths | Weaknesses | Opportunity |
+|------------|-----------|------------|-------------|
+| ChatGPT | Polished UI, fast streaming, familiar UX | Closed ecosystem, no model switching | Offer model flexibility with equally clean UX |
+| Claude.ai | Clean design, artifact panel, conversation management | No multi-model support | Keep the clean aesthetic, add model switching |
+| Poe (Quora) | Multi-model in one place, bot switching | UI can feel cluttered, too many options | Simpler model selector, fewer distractions |
+| Open WebUI | Self-hosted, highly customizable | Complex setup, overwhelming settings | Ship a zero-config experience with sane defaults |
 
 ---
 
@@ -96,165 +103,179 @@ Stage 5: Verify / Debug
 ### 2.1 Sitemap
 
 ```
-Test Chat UI (Single Page Application)
-|- Session Sidebar (left panel)
-|  |- New Session Button
-|  |- Session List
-|     |- Session Item (title, timestamp, active indicator)
-|     |- Delete Session Action
-|- Chat Panel (main area)
-|  |- Chat Header (session title, connection status)
-|  |- Message List
-|  |  |- User Message Bubble
-|  |  |- Agent Message Bubble (with markdown/code rendering)
-|  |  |- Tool Call Indicator (collapsible)
-|  |  |- Loading / Streaming Indicator
-|  |- Input Area
-|     |- Text Input (multiline)
-|     |- Send Button
+Chatbot App (Single Page Application)
+|- Main Chat View (app/page.tsx)
+|  |- Session Sidebar (left panel)
+|  |  |- New Chat button
+|  |  |- Session list (scrollable)
+|  |  |  |- Session item (title, delete action)
+|  |- Chat Area (center)
+|  |  |- Header bar
+|  |  |  |- Sidebar toggle (mobile)
+|  |  |  |- Model selector dropdown
+|  |  |- Message thread (scrollable)
+|  |  |  |- User message bubble
+|  |  |  |- Assistant message bubble
+|  |  |  |- Typing indicator
+|  |  |  |- Empty state (when no messages)
+|  |  |- Input area (bottom, fixed)
+|  |  |  |- Text input / textarea
+|  |  |  |- Send button
 ```
 
 ### 2.2 Navigation Structure
 
-**Primary Navigation:** None -- single page app. The sidebar serves as the only navigation.
+**Primary Navigation:** Session Sidebar
 
-| Element | Priority | Action |
-|---------|----------|--------|
-| New Session | High | Creates new session, switches to it |
-| Session List Item | High | Switches active session, loads history |
-| Delete Session | Low | Removes session with confirmation |
+| Item | Priority | Icon | Action |
+|------|----------|------|--------|
+| New Chat | High | `Plus` (lucide) | Creates a new session via POST /api/sessions |
+| Session List | High | `MessageSquare` (lucide) | Switches active session, loads message history |
+
+**Secondary Navigation:** Header Bar
+
+| Item | Priority | Icon | Action |
+|------|----------|------|--------|
+| Sidebar Toggle | Medium | `PanelLeftClose` / `PanelLeftOpen` (lucide) | Toggles sidebar visibility (especially mobile) |
+| Model Selector | Medium | `ChevronDown` (lucide) | Dropdown to switch LLM model |
 
 ### 2.3 Content Hierarchy
 
-| Area | Primary Content | Secondary Content |
-|------|----------------|-------------------|
-| Chat Panel | Message stream (user + agent) | Tool call details, timestamps |
-| Sidebar | Session list | Session metadata (date, message count) |
-| Header | Session title | Connection status |
+| Area | Primary Content | Secondary Content | Tertiary |
+|------|----------------|-------------------|----------|
+| Chat Area | Message thread | Typing indicator | Empty state / welcome |
+| Sidebar | Session list | New Chat button | Session delete action |
+| Header | Model selector | Sidebar toggle | App title (optional) |
+| Input Bar | Text input | Send button | Character hint (optional) |
 
 ---
 
 ## 3. User Flows
 
-### 3.1 Core Flow: Send a Chat Message
+### 3.1 Core Flow: Send a Message
 
-**Goal:** User sends a prompt and receives a streaming response from the agent.
-**Entry Point:** Chat input field
-**Success Criteria:** Agent response streams in, renders correctly, message is persisted.
+**Goal:** User sends a text message and receives an AI response
+**Entry Point:** Chat input field (focused by default)
+**Success Criteria:** User sees their message in the thread followed by an AI response
 
 ```
-[User types message in input]
-    |
-    v
-[Press Enter or click Send]
-    |
-    v
-[Input clears, user bubble appears]
-    |
-    v
-[POST /chat with sessionId + message]
-    |
-    v
-[Streaming indicator appears]
-    |
-    v
-[Tokens stream into agent bubble]
-    |
-    v
-[Stream completes, full message rendered]
-    |
-    v
-[Input re-enabled, focus returns]
+[User lands on page]
+        |
+        v
+[Input field is auto-focused]
+        |
+        v
+[User types message]
+        |
+        v
+[User presses Enter or clicks Send]
+        |
+        v
+[Message appears in thread as user bubble]
+[Input clears, typing indicator shows]
+        |
+        v
+[POST /api/chat with message + session_id + model]
+        |
+       / \
+    200    Error
+     |       |
+     v       v
+[Assistant bubble     [Error toast:
+ appears with         "Failed to send.
+ response]            Try again."]
+     |
+     v
+[Chat scrolls to bottom]
+[Input re-focuses]
 ```
 
 **Edge Cases:**
-- Empty input: Send button disabled, Enter does nothing
-- Network error mid-stream: Show error banner, preserve partial response with "[Error: Connection lost]" suffix
-- Very long response: Auto-scroll follows stream, user can scroll up to break auto-scroll
+- Empty message: Disable Send button when input is empty
+- Long message: Allow multi-line input (Shift+Enter for newline, Enter to send)
+- Network error: Show error toast with retry option
+- Slow response: Typing indicator persists; consider a timeout message after 30s
 
 **Error States:**
-- API unreachable: Red banner "Cannot connect to API. Check that the server is running." with retry button
-- 500 error: Inline error message in chat "Something went wrong. Try again." with retry action
-- Session expired/deleted: Redirect to new session with info toast
+- API 500: "Something went wrong. Please try again." (toast notification)
+- API 429: "Too many requests. Please wait a moment." (toast notification)
+- Network offline: "You appear to be offline. Check your connection." (inline banner)
 
-### 3.2 Core Flow: Session Management
+### 3.2 Session Management Flow
 
-**Goal:** User creates, switches between, and deletes chat sessions.
+**Goal:** User creates, switches, and deletes conversation sessions
 **Entry Point:** Session sidebar
-**Success Criteria:** Sessions persist across page reloads, switching loads correct history.
+**Success Criteria:** User can organize conversations into separate threads
 
 ```
-[New Session]
-    |
-    v
-[POST /sessions → returns sessionId]
-    |
-    v
-[New session appears in sidebar, marked active]
-    |
-    v
-[Chat panel clears, shows empty state]
+[User clicks "New Chat"]
+        |
+        v
+[POST /api/sessions]
+        |
+        v
+[New session appears in sidebar, becomes active]
+[Chat area clears, shows empty state]
+        |
+        v
+[User starts chatting in new session]
 
----
+--- Switch Session ---
 
-[Switch Session]
-    |
-    v
-[Click session in sidebar]
-    |
-    v
-[GET /sessions/{id}/messages]
-    |
-    v
-[Chat panel loads message history]
-    |
-    v
-[Sidebar highlights active session]
+[User clicks a session in sidebar]
+        |
+        v
+[GET /api/sessions/[id]/messages]
+        |
+        v
+[Chat area loads message history for that session]
+[Active session highlighted in sidebar]
 
----
+--- Delete Session ---
 
-[Delete Session]
-    |
-    v
-[Click delete icon on session]
-    |
-    v
-[Confirm dialog: "Delete this session?"]
-    |
-   / \
- Yes   No
-  |     |
-  v     v
-[DELETE /sessions/{id}]  [Dismiss]
-  |
-  v
+[User clicks delete icon on session]
+        |
+        v
+[Confirmation dialog: "Delete this conversation?"]
+       / \
+    Yes    No
+     |      |
+     v      v
+[DELETE     [Dialog closes,
+ /api/      no action]
+ sessions/
+ [id]]
+     |
+     v
 [Session removed from sidebar]
-  |
-  v
-[If active session deleted → switch to most recent or empty state]
+[If was active: switch to most recent or show empty state]
 ```
 
-### 3.3 Core Flow: Tool Call Visibility
+### 3.3 Model Selection Flow
 
-**Goal:** User can see when the agent invokes tools (execute_command, create_task, etc.)
-**Entry Point:** Agent response stream
-**Success Criteria:** Tool calls are visible inline, collapsible, and distinguishable from regular text.
+**Goal:** User changes the LLM model used for responses
+**Entry Point:** Model selector dropdown in header
+**Success Criteria:** Subsequent messages use the selected model
 
 ```
-[Agent decides to call a tool]
-    |
-    v
-[Tool call indicator appears: "Calling: execute_command(ls /project)"]
-    |
-    v
-[Tool result returns]
-    |
-    v
-[Result shown in collapsible block]
-    |
-    v
-[Agent continues response with tool output context]
+[User clicks model selector in header]
+        |
+        v
+[Dropdown opens showing available models]
+        |
+        v
+[User selects a model]
+        |
+        v
+[Dropdown closes]
+[Selected model name shown in selector]
+[Next POST /api/chat includes model parameter]
 ```
+
+**Edge Cases:**
+- Model list is hardcoded client-side (no API needed for MVP)
+- Currently selected model shown with checkmark
+- Default model from env shown as "Default" label or pre-selected
 
 ---
 
@@ -262,337 +283,295 @@ Test Chat UI (Single Page Application)
 
 ### 4.1 Color Palette
 
-Minimal palette. Use system-native colors where possible. Dark mode optional (defer to Phase 2).
+Using shadcn/ui default theme (Zinc-based neutral palette) for speed to market. These map directly to CSS variables set by shadcn's theme system.
 
-#### Brand Colors
-| Name | Hex | RGB | Usage |
-|------|-----|-----|-------|
-| Primary | #2563EB | rgb(37, 99, 235) | Send button, active session, links |
-| Primary Hover | #1D4ED8 | rgb(29, 78, 216) | Hover states |
-| Primary Light | #EFF6FF | rgb(239, 246, 255) | Agent message bubble background |
+#### Theme Colors (shadcn/ui CSS Variables)
 
-#### Semantic Colors
-| Name | Hex | Contrast vs White | Usage |
-|------|-----|-------------------|-------|
-| Success | #16A34A | 4.5:1 AA | Connected status |
-| Warning | #D97706 | 4.5:1 AA | Partial stream, reconnecting |
-| Error | #DC2626 | 4.5:1 AA | Error banners, failed messages |
-| Info | #2563EB | 4.5:1 AA | Tool call indicators |
+| Token | Light Mode | Dark Mode | Usage |
+|-------|------------|-----------|-------|
+| `--background` | `hsl(0 0% 100%)` | `hsl(240 10% 3.9%)` | Page background |
+| `--foreground` | `hsl(240 10% 3.9%)` | `hsl(0 0% 98%)` | Primary text |
+| `--card` | `hsl(0 0% 100%)` | `hsl(240 10% 3.9%)` | Card/surface background |
+| `--card-foreground` | `hsl(240 10% 3.9%)` | `hsl(0 0% 98%)` | Card text |
+| `--primary` | `hsl(240 5.9% 10%)` | `hsl(0 0% 98%)` | Primary buttons, links |
+| `--primary-foreground` | `hsl(0 0% 98%)` | `hsl(240 5.9% 10%)` | Text on primary |
+| `--secondary` | `hsl(240 4.8% 95.9%)` | `hsl(240 3.7% 15.9%)` | Secondary buttons |
+| `--secondary-foreground` | `hsl(240 5.9% 10%)` | `hsl(0 0% 98%)` | Text on secondary |
+| `--muted` | `hsl(240 4.8% 95.9%)` | `hsl(240 3.7% 15.9%)` | Muted backgrounds |
+| `--muted-foreground` | `hsl(240 3.8% 46.1%)` | `hsl(240 5% 64.9%)` | Secondary/muted text |
+| `--accent` | `hsl(240 4.8% 95.9%)` | `hsl(240 3.7% 15.9%)` | Hover states, accents |
+| `--accent-foreground` | `hsl(240 5.9% 10%)` | `hsl(0 0% 98%)` | Text on accent |
+| `--destructive` | `hsl(0 84.2% 60.2%)` | `hsl(0 62.8% 30.6%)` | Delete actions, errors |
+| `--border` | `hsl(240 5.9% 90%)` | `hsl(240 3.7% 15.9%)` | Borders |
+| `--input` | `hsl(240 5.9% 90%)` | `hsl(240 3.7% 15.9%)` | Input borders |
+| `--ring` | `hsl(240 5.9% 10%)` | `hsl(240 4.9% 83.9%)` | Focus rings |
 
-#### Neutral Colors
-| Name | Hex | Usage |
-|------|-----|-------|
-| Gray 950 | #0B1120 | -- reserved for dark mode |
-| Gray 900 | #111827 | Primary text |
-| Gray 700 | #374151 | Secondary text, timestamps |
-| Gray 500 | #6B7280 | Placeholder text, icons |
-| Gray 300 | #D1D5DB | Borders, dividers |
-| Gray 100 | #F3F4F6 | Sidebar background, user bubble bg |
-| Gray 50 | #F9FAFB | Chat panel background |
-| White | #FFFFFF | Cards, input background |
+#### Semantic Colors (Application-Specific)
+
+| Name | Value | Usage |
+|------|-------|-------|
+| User Bubble BG | `--primary` | User message background |
+| User Bubble Text | `--primary-foreground` | User message text |
+| Assistant Bubble BG | `--muted` | Assistant message background |
+| Assistant Bubble Text | `--foreground` | Assistant message text |
+| Sidebar BG | `--card` or `--muted` | Sidebar background |
+| Active Session | `--accent` | Highlighted active session |
+
+#### Contrast Compliance
+
+| Pair | Ratio (Light) | WCAG Level |
+|------|---------------|------------|
+| foreground on background | ~19.6:1 | AAA |
+| primary-foreground on primary | ~19.6:1 | AAA |
+| muted-foreground on background | ~5.2:1 | AA |
+| destructive on background | ~4.6:1 | AA |
 
 ### 4.2 Typography
 
-Single font family. System fonts for zero load time.
+Using shadcn/ui default: Inter via `font-sans` with system font fallback.
 
 #### Font Family
+
 ```css
---font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
---font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+--font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system,
+  BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+  Arial, sans-serif;
+--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular,
+  'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 ```
 
 #### Type Scale
+
 | Style | Size | Weight | Line Height | Usage |
 |-------|------|--------|-------------|-------|
-| H1 | 20px | 600 | 1.3 | Chat header title |
-| H2 | 16px | 600 | 1.4 | Session list section label |
-| Body | 15px | 400 | 1.6 | Chat messages |
-| Body Small | 13px | 400 | 1.5 | Timestamps, metadata |
-| Caption | 12px | 500 | 1.4 | Status indicators, labels |
-| Code | 14px | 400 | 1.5 | Code blocks, tool calls (monospace) |
+| H1 | 36px / 2.25rem | 700 (bold) | 1.2 | Not used (single page app) |
+| H2 | 24px / 1.5rem | 600 (semibold) | 1.3 | Sidebar title (if shown) |
+| H3 | 20px / 1.25rem | 600 (semibold) | 1.35 | Section labels |
+| Body | 16px / 1rem | 400 (normal) | 1.5 | Chat messages, default text |
+| Body Small | 14px / 0.875rem | 400 (normal) | 1.5 | Session names, timestamps, model name |
+| Caption | 12px / 0.75rem | 500 (medium) | 1.4 | Labels, metadata, "Typing..." |
+| Code | 14px / 0.875rem | 400 (normal) | 1.6 | Code blocks in messages (font-mono) |
 
 ### 4.3 Spacing
 
-Base unit: 4px. Keep it tight -- this is a chat interface, not a marketing page.
+Using Tailwind CSS default spacing scale (base unit: 4px). All values from Tailwind utility classes.
 
 ```css
---space-1: 4px;    /* Inline padding */
---space-2: 8px;    /* Icon gaps, compact padding */
---space-3: 12px;   /* Message bubble internal padding */
---space-4: 16px;   /* Standard gaps, sidebar padding */
---space-5: 20px;   /* Between message groups */
---space-6: 24px;   /* Section gaps */
---space-8: 32px;   /* Large gaps */
+/* Key spacing tokens used in the app */
+--space-1: 0.25rem;  /* 4px  - Inline element gaps */
+--space-2: 0.5rem;   /* 8px  - Icon + text gap, tight padding */
+--space-3: 0.75rem;  /* 12px - Input padding, list item gap */
+--space-4: 1rem;     /* 16px - Standard padding, card padding */
+--space-5: 1.25rem;  /* 20px - Comfortable spacing */
+--space-6: 1.5rem;   /* 24px - Section padding */
+--space-8: 2rem;     /* 32px - Large gaps */
+--space-12: 3rem;    /* 48px - Page section gaps */
+--space-16: 4rem;    /* 64px - Hero/major section gaps */
 ```
 
 ### 4.4 Border Radius
 
+Using shadcn/ui default radius variable:
+
 ```css
---radius-sm: 4px;      /* Inputs, small buttons */
---radius-md: 8px;      /* Cards, session items */
---radius-lg: 16px;     /* Chat bubbles */
---radius-full: 9999px; /* Avatars, pills */
+--radius: 0.5rem; /* 8px - shadcn default */
+
+/* Derived values */
+--radius-sm: calc(var(--radius) - 4px);   /* 4px */
+--radius-md: calc(var(--radius) - 2px);   /* 6px */
+--radius-lg: var(--radius);               /* 8px */
+--radius-xl: calc(var(--radius) + 4px);   /* 12px */
+--radius-full: 9999px;                    /* Pills, avatars */
 ```
+
+**Component-specific radius:**
+- Chat bubbles: `rounded-2xl` (16px) for a friendly, conversational feel
+- Buttons: `rounded-md` (6px, shadcn default)
+- Input fields: `rounded-md` (6px)
+- Cards/sidebar: `rounded-lg` (8px)
+- Avatars/icons: `rounded-full` (circle)
 
 ### 4.5 Shadows
 
+Using shadcn/ui and Tailwind defaults:
+
 ```css
---shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);   /* Session items on hover */
---shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);    /* Input area */
+--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+             0 2px 4px -2px rgb(0 0 0 / 0.1);
+--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+             0 4px 6px -4px rgb(0 0 0 / 0.1);
 ```
+
+**Usage:**
+- Sidebar: No shadow (border-right separator) or `shadow-sm`
+- Dropdown menus: `shadow-md`
+- Modals/dialogs: `shadow-lg`
+- Chat bubbles: No shadow (flat design, differentiated by background color)
 
 ---
 
 ## 5. Component Library
 
-### 5.1 Layout Shell
+All components below map to shadcn/ui primitives. Install with `npx shadcn@latest add <component>`.
+
+### 5.1 Buttons
+
+**shadcn component:** `button`
+
+| Variant | Usage | Tailwind / shadcn Variant |
+|---------|-------|---------------------------|
+| Primary (default) | Send message button | `variant="default"` |
+| Secondary | New Chat button in sidebar | `variant="secondary"` |
+| Ghost | Session list items, sidebar toggle | `variant="ghost"` |
+| Outline | Model selector trigger | `variant="outline"` |
+| Destructive | Delete session confirmation | `variant="destructive"` |
+| Icon | Send icon button, delete icon, sidebar toggle | `variant="ghost" size="icon"` |
+
+**States for all variants:**
+- Default: Standard appearance
+- Hover: Slight background shift (shadcn handles this)
+- Active/Pressed: Slightly darker
+- Disabled: 50% opacity, `cursor-not-allowed`
+- Loading: Spinner icon replaces content or appears alongside
+- Focus: `ring-2 ring-ring ring-offset-2` (shadcn default focus ring)
+
+**Accessibility:**
+- Minimum touch target: 44x44px (use `size="default"` or larger)
+- Icon-only buttons MUST have `aria-label`
+- Focus ring visible on keyboard navigation
+
+### 5.2 Form Elements
+
+#### Chat Input
+
+**Component:** Custom `textarea` or shadcn `textarea`
+
+| State | Border | Background | Text |
+|-------|--------|------------|------|
+| Default | `border-input` | `bg-background` | `text-foreground` |
+| Focus | `ring-2 ring-ring` | `bg-background` | `text-foreground` |
+| Disabled | `border-input opacity-50` | `bg-muted` | `text-muted-foreground` |
+
+**Behavior:**
+- Auto-grows vertically (min 1 row, max 6 rows)
+- Enter sends message; Shift+Enter adds newline
+- Placeholder: "Type a message..." (text-muted-foreground)
+- Send button enabled only when input is non-empty (trimmed)
+
+#### Model Selector
+
+**shadcn component:** `select` (or `dropdown-menu` / `popover` + `command`)
+
+| Property | Value |
+|----------|-------|
+| Trigger | Outline button showing current model name |
+| Items | List of model strings (hardcoded for MVP) |
+| Selected | Checkmark icon next to active model |
+| Width | `w-[200px]` or auto |
+
+### 5.3 Chat Bubbles (Custom Component)
+
+Not a shadcn primitive; built with Tailwind.
+
+#### User Message Bubble
 
 ```
-+------------------+--------------------------------------------+
-|                  |                                            |
-|  Session         |  Chat Header                               |
-|  Sidebar         |  [Session Title]     [Status: Connected]   |
-|  (260px)         |--------------------------------------------|
-|                  |                                            |
-|  [+ New Session] |  Message List (scrollable)                 |
-|                  |                                            |
-|  Session Item    |    [User bubble]                           |
-|  Session Item *  |    [Agent bubble - streaming...]           |
-|  Session Item    |    [Tool call block]                       |
-|  Session Item    |    [Agent bubble]                          |
-|                  |                                            |
-|                  |--------------------------------------------|
-|                  |  Input Area                                |
-|                  |  [____________________________] [Send]     |
-|                  |                                            |
-+------------------+--------------------------------------------+
+Container: flex justify-end
+Bubble:    bg-primary text-primary-foreground rounded-2xl rounded-br-sm
+           px-4 py-2.5 max-w-[80%] md:max-w-[70%]
 ```
 
-- Sidebar: fixed 260px width on desktop, collapsible overlay on mobile (<768px)
-- Chat panel: flex-grow, fills remaining width
-- Input area: sticky bottom, shadow-md to separate from messages
+#### Assistant Message Bubble
 
-### 5.2 Session Sidebar
-
-#### Container
-| Property | Value |
-|----------|-------|
-| Width | 260px (desktop), 100% overlay (mobile) |
-| Background | Gray 100 (#F3F4F6) |
-| Border Right | 1px solid Gray 300 |
-| Padding | 16px |
-| Overflow-Y | auto (scroll if many sessions) |
-
-#### New Session Button
-| Property | Value |
-|----------|-------|
-| Width | 100% |
-| Height | 40px |
-| Background | Primary (#2563EB) |
-| Text | "New Session", White, 14px, weight 500 |
-| Border Radius | radius-sm (4px) |
-| Hover | Primary Hover (#1D4ED8) |
-| Focus | 2px ring, Primary, 2px offset |
-| Icon | Plus icon (16px), left of text |
-
-#### Session List Item
-| State | Background | Text Color | Border Left |
-|-------|------------|------------|-------------|
-| Default | transparent | Gray 900 | none |
-| Hover | White | Gray 900 | none |
-| Active | White | Primary | 3px solid Primary |
-| Focus | White | Gray 900 | 2px ring Primary |
-
-| Property | Value |
-|----------|-------|
-| Height | auto, min 56px |
-| Padding | 12px |
-| Border Radius | radius-md (8px) |
-| Cursor | pointer |
-| Content | Session title (14px, 600), truncated single line |
-| Sub-content | Relative timestamp (12px, Gray 500) e.g. "2 hours ago" |
-| Delete button | Trash icon (16px), Gray 500, visible on hover, 44x44 touch target |
-
-### 5.3 Chat Header
-
-| Property | Value |
-|----------|-------|
-| Height | 56px |
-| Background | White |
-| Border Bottom | 1px solid Gray 300 |
-| Padding | 0 16px |
-| Display | flex, align-items: center, justify-content: space-between |
-| Left content | Session title (20px, weight 600) |
-| Right content | Connection status pill |
-
-#### Connection Status Pill
-| State | Background | Text | Dot Color |
-|-------|------------|------|-----------|
-| Connected | Success/10% (#DCFCE7) | "Connected" (12px, Success) | Success |
-| Connecting | Warning/10% (#FEF3C7) | "Connecting..." (12px, Warning) | Warning (pulsing) |
-| Disconnected | Error/10% (#FEE2E2) | "Disconnected" (12px, Error) | Error |
-
-### 5.4 Message Bubbles
-
-#### User Message
-| Property | Value |
-|----------|-------|
-| Alignment | Right-aligned |
-| Max Width | 75% of chat panel |
-| Background | Gray 100 (#F3F4F6) |
-| Text Color | Gray 900 |
-| Font Size | 15px, line-height 1.6 |
-| Padding | 12px 16px |
-| Border Radius | 16px 16px 4px 16px (tail bottom-right) |
-| Margin Bottom | 8px |
-| Timestamp | Below bubble, right-aligned, 12px, Gray 500 |
-
-#### Agent Message
-| Property | Value |
-|----------|-------|
-| Alignment | Left-aligned |
-| Max Width | 85% of chat panel (agent messages tend to be longer) |
-| Background | Primary Light (#EFF6FF) |
-| Text Color | Gray 900 |
-| Font Size | 15px, line-height 1.6 |
-| Padding | 12px 16px |
-| Border Radius | 16px 16px 16px 4px (tail bottom-left) |
-| Margin Bottom | 8px |
-| Timestamp | Below bubble, left-aligned, 12px, Gray 500 |
-
-#### Markdown Rendering inside Agent Bubble
-- **Bold**, *italic*, `inline code` supported
-- Code blocks: monospace font, Gray 950 background (#0B1120), white text, 14px, 12px padding, radius-sm, horizontal scroll
-- Lists: standard indentation, bullet/number
-- Links: Primary color, underline on hover
-
-### 5.5 Tool Call Block
-
-Displayed inline in the message stream when the agent invokes a tool.
-
-| Property | Value |
-|----------|-------|
-| Alignment | Left, full width within agent bubble column |
-| Background | #F8FAFC (very light blue-gray) |
-| Border | 1px solid Gray 300 |
-| Border Left | 3px solid Info (#2563EB) |
-| Border Radius | radius-sm (4px) |
-| Padding | 8px 12px |
-| Margin | 4px 0 |
-| Icon | Wrench icon (14px), Info color |
-| Title | Tool name + args summary (13px, weight 500, Gray 700) |
-| Expand/Collapse | Chevron icon, toggles result visibility |
-| Result | Monospace, 13px, max-height 200px with scroll, shown on expand |
+```
+Container: flex justify-start gap-3
+Avatar:    w-8 h-8 rounded-full bg-muted flex items-center justify-center
+Bubble:    bg-muted text-foreground rounded-2xl rounded-bl-sm
+           px-4 py-2.5 max-w-[80%] md:max-w-[70%]
+```
 
 **States:**
-| State | Indicator |
-|-------|-----------|
-| Calling | Spinner icon + "Calling: {tool_name}..." |
-| Complete | Check icon + tool name + "(click to expand)" |
-| Error | X icon, Error color border-left, error message shown |
+- Default: Fully rendered message
+- Loading (assistant only): Animated dots ("...") or pulsing skeleton
+- Error: Red border or inline error text with retry
 
-### 5.6 Chat Input Area
+### 5.4 Session Sidebar
+
+**Layout:** Fixed-width left panel, collapsible on mobile.
+
+| Property | Desktop | Mobile |
+|----------|---------|--------|
+| Width | 260px (`w-[260px]`) | Full screen overlay or slide-in |
+| Visibility | Always visible | Hidden by default, toggled via hamburger |
+| Background | `bg-card` or `bg-muted/50` | Same |
+| Border | `border-r` | None (overlay) |
+
+**Session List Item:**
+
+```
+Container: flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer
+           hover:bg-accent text-sm truncate
+Active:    bg-accent text-accent-foreground font-medium
+Delete:    opacity-0 group-hover:opacity-100 (icon button, right side)
+```
+
+### 5.5 Navigation Components
+
+#### Header Bar
 
 | Property | Value |
 |----------|-------|
-| Position | Sticky bottom |
-| Background | White |
-| Border Top | 1px solid Gray 300 |
-| Padding | 12px 16px |
-| Shadow | shadow-md |
-| Display | flex, gap 8px, align-items: flex-end |
+| Height | 56px (`h-14`) |
+| Position | Sticky top (`sticky top-0 z-10`) |
+| Background | `bg-background/80 backdrop-blur-sm` (frosted glass) |
+| Border | `border-b` |
+| Content | Sidebar toggle (left), App title center (optional), Model selector (right) |
 
-#### Text Input
-| Property | Value |
-|----------|-------|
-| Type | textarea (auto-resize, min 1 row, max 6 rows) |
-| Background | White |
-| Border | 1px solid Gray 300 |
-| Border Radius | radius-md (8px) |
-| Padding | 10px 12px |
-| Font | 15px, font-primary |
-| Placeholder | "Type a message..." (Gray 500) |
-| Focus | Border Primary, ring 2px Primary/20% |
-| Resize | none (auto-grow only) |
-| Keyboard | Enter sends (desktop), Shift+Enter new line |
-
-#### Send Button
-| Property | Value |
-|----------|-------|
-| Size | 40x40px (meets 44px touch target with padding) |
-| Background | Primary (#2563EB) |
-| Icon | Arrow-up / Send icon, White, 20px |
-| Border Radius | radius-full (circle) |
-| Hover | Primary Hover |
-| Disabled | Opacity 0.4, cursor not-allowed (when input empty or streaming) |
-| Focus | 2px ring, Primary, 2px offset |
-| aria-label | "Send message" |
-
-### 5.7 Empty State (No Messages)
+### 5.6 Empty State (No Messages)
 
 Shown when a session has no messages yet.
 
-| Property | Value |
-|----------|-------|
-| Display | Centered vertically and horizontally |
-| Icon | Chat bubble outline, 48px, Gray 300 |
-| Title | "Start a conversation" (16px, 600, Gray 700) |
-| Subtitle | "Ask the agent about your project" (14px, Gray 500) |
-| Suggested prompts (optional) | 2-3 clickable pills with example queries |
+```
+Container: flex flex-col items-center justify-center h-full text-center
+Icon:      Bot icon or waving hand, 48px, text-muted-foreground
+Title:     "Start a conversation" (text-lg font-semibold)
+Subtitle:  "Type a message below to begin." (text-sm text-muted-foreground)
+Optional:  2-3 suggested prompt buttons (variant="outline", clickable)
+```
 
-#### Suggested Prompt Pill
-| Property | Value |
-|----------|-------|
-| Background | White |
-| Border | 1px solid Gray 300 |
-| Border Radius | radius-full |
-| Padding | 8px 16px |
-| Font | 14px, Gray 700 |
-| Hover | Border Primary, text Primary |
-| Cursor | pointer |
-| On click | Fills input with prompt text |
+### 5.7 Typing Indicator
 
-Example prompts:
-- "Show me tasks with upcoming deadlines"
-- "List all project documents"
-- "Create a new task for the next sprint"
+Three animated dots inside an assistant-style bubble.
 
-### 5.8 Streaming Indicator
+```
+Container: flex justify-start gap-3 (same as assistant bubble)
+Bubble:    bg-muted rounded-2xl rounded-bl-sm px-4 py-3
+Dots:      3x w-2 h-2 bg-muted-foreground/50 rounded-full
+           animate with staggered bounce (150ms delay between each)
+```
 
-Shown while the agent is generating a response (before first token or between tool calls).
+### 5.8 Dialogs and Toasts
 
-| Property | Value |
-|----------|-------|
-| Position | Inside agent bubble area, left-aligned |
-| Animation | Three dots pulsing (opacity 0.3 to 1, staggered 150ms) |
-| Dot size | 8px circles |
-| Color | Gray 400 |
-| Duration | Visible until first token streams in |
+**Delete Confirmation Dialog:**
+- shadcn component: `alert-dialog`
+- Title: "Delete conversation?"
+- Description: "This will permanently delete this conversation and all its messages."
+- Actions: "Cancel" (outline), "Delete" (destructive)
 
-### 5.9 Error Banner
+**Error Toast:**
+- shadcn component: `sonner` (recommended) or `toast`
+- Position: Bottom-right (`bottom-right`)
+- Auto-dismiss: 5 seconds
+- Variants: error (destructive), success, info
 
-Shown at top of chat panel for connection or API errors.
+### 5.9 Scroll Area
 
-| Property | Value |
-|----------|-------|
-| Position | Fixed top of chat panel, below header |
-| Background | Error/10% (#FEE2E2) |
-| Border | 1px solid Error/30% |
-| Text | Error message (14px, Error) |
-| Padding | 8px 16px |
-| Action | "Retry" link or dismiss X |
-| z-index | Above messages |
+**shadcn component:** `scroll-area`
 
-### 5.10 Mobile Sidebar Toggle
-
-| Property | Value |
-|----------|-------|
-| Breakpoint | < 768px |
-| Trigger | Hamburger icon (24px) in chat header, left side |
-| Behavior | Sidebar slides in from left as overlay |
-| Backdrop | rgba(0, 0, 0, 0.3), click to close |
-| Close | X button inside sidebar header, or backdrop click |
-| Touch target | 44x44px minimum |
+Used for:
+- Message thread (main chat area): Vertical scroll, auto-scroll to bottom on new messages
+- Session sidebar list: Vertical scroll when sessions exceed viewport
 
 ---
 
@@ -602,190 +581,286 @@ Shown at top of chat panel for connection or API errors.
 
 | Breakpoint | Width | Layout Changes |
 |------------|-------|----------------|
-| Mobile | < 768px | Sidebar hidden, hamburger toggle, full-width chat |
-| Desktop | >= 768px | Sidebar visible (260px), chat fills remaining |
+| Mobile | < 768px | Sidebar hidden (overlay on toggle), full-width chat, input at bottom |
+| Tablet | 768-1024px | Sidebar collapsible, chat takes remaining width |
+| Desktop | > 1024px | Sidebar always visible (260px), chat fills remaining space |
 
-This is a 2-breakpoint system. No tablet-specific layout needed for a test UI.
+### 6.2 Desktop Layout (>1024px)
+
+```
++------------------------------------------------------------------+
+| [=] Sidebar Toggle   Simple Chatbot          [Model Selector v]  |
++------------------------------------------------------------------+
+|          |                                                        |
+| SIDEBAR  |  CHAT AREA                                            |
+| 260px    |                                                        |
+|          |                                                        |
+| [+ New]  |     (empty state or message thread)                   |
+|          |                                                        |
+| Session1 |   [User bubble aligned right]                         |
+| Session2*|                                                        |
+| Session3 |   [Assistant bubble aligned left with avatar]          |
+|          |                                                        |
+|          |   [User bubble]                                        |
+|          |                                                        |
+|          |   [Assistant bubble]                                   |
+|          |                                                        |
+|          |   [Typing indicator...]                                |
+|          |                                                        |
+|          +--------------------------------------------------------+
+|          | [  Type a message...                        ] [Send ->]|
++------------------------------------------------------------------+
+```
+
+### 6.3 Mobile Layout (<768px)
+
+```
++--------------------------------+
+| [=]  Simple Chatbot   [Model v]|
++--------------------------------+
+|                                |
+|  CHAT AREA (full width)       |
+|                                |
+|        [User bubble]          |
+|                                |
+|  [Assistant bubble]           |
+|                                |
+|        [User bubble]          |
+|                                |
+|  [Typing...]                  |
+|                                |
++--------------------------------+
+| [Type a message...   ] [Send] |
++--------------------------------+
+
+--- When sidebar toggled open ---
+
++--------------------------------+
+| SIDEBAR OVERLAY (full screen)  |
+|                                |
+| [X Close]                      |
+|                                |
+| [+ New Chat]                   |
+|                                |
+| Session 1                      |
+| Session 2 *active*             |
+| Session 3                      |
+|                                |
++--------------------------------+
+```
 
 ---
 
 ## 7. Wireframes
 
-### 7.1 Desktop Layout (>= 768px)
+### 7.1 Main Chat Page -- Desktop
 
 ```
-+---260px---+--------------------flex-grow--------------------+
-|            |                                                 |
-| [+ New     | Chat Header                                    |
-|  Session]  | Poten Agent - Session 3          [* Connected] |
-|            |------------------------------------------------|
-| Sessions   |                                                 |
-|            |                    [User bubble, right]          |
-| > Session 3|     How many tasks are overdue?                 |
-|   2 min ago|                                                 |
-|            |  [Agent bubble, left]                            |
-|  Session 2 |  Let me check your tasks...                     |
-|  1 hr ago  |                                                 |
-|            |  [Tool: execute_command(ls /project/todos)]      |
-|  Session 1 |  [v Expand to see result]                       |
-|  Yesterday |                                                 |
-|            |  [Agent bubble, left]                            |
-|            |  You have 3 overdue tasks:                       |
-|            |  1. Update API docs (due Apr 5)                  |
-|            |  2. Fix login bug (due Apr 3)                    |
-|            |  3. Deploy staging (due Apr 1)                   |
-|            |                                                 |
-|            |                                                 |
-|            |                                                 |
-|            |------------------------------------------------|
-|            | [_Type a message...______________] [>]          |
-+------------+-------------------------------------------------+
++------------------------------------------------------------------------+
+|  HEADER (h-14, sticky, border-b, backdrop-blur)                        |
+|  +----+  +---------------------------+       +---------------------+   |
+|  | := |  | Simple Chatbot            |       | moonshotai/kimi-k2 v|   |
+|  +----+  +---------------------------+       +---------------------+   |
++------------------------------------------------------------------------+
+|         |                                                              |
+| SIDEBAR |  MESSAGE AREA (flex-1, overflow-y-auto, scroll-area)         |
+| w-[260] |                                                              |
+| border-r|       +--------------------------------------------------+  |
+|         |       |                                                  |  |
+| +-----+ |       |                  [Bot Icon]                      |  |
+| |+ New| |       |           Start a conversation                   |  |
+| |Chat | |       |       Type a message below to begin.             |  |
+| +-----+ |       |                                                  |  |
+|         |       |  [What can you help me with?]  [Tell me a joke]  |  |
+| +-----+ |       |                                                  |  |
+| |Sess1| |       +--------------------------------------------------+  |
+| +-----+ |                                                              |
+| +-----+ |                                                              |
+| |Sess2| |                                                              |
+| |*act*| |                                                              |
+| +-----+ |                                                              |
+| +-----+ |                                                              |
+| |Sess3| |                                                              |
+| +-----+ |                                                              |
+|         |                                                              |
+|         +--------------------------------------------------------------+
+|         |  INPUT BAR (sticky bottom, border-t, p-4)                    |
+|         |  +--------------------------------------------------+ +----+ |
+|         |  | Type a message...                                | | -> | |
+|         |  +--------------------------------------------------+ +----+ |
++------------------------------------------------------------------------+
 ```
 
-### 7.2 Mobile Layout (< 768px)
-
-#### Default State (sidebar hidden)
-```
-+----------------------------------------------+
-| [=]  Poten Agent - Session 3   [* Connected] |
-|----------------------------------------------|
-|                                              |
-|                  [User bubble, right]         |
-|     How many tasks are overdue?              |
-|                                              |
-| [Agent bubble, left]                          |
-| Let me check your tasks...                   |
-|                                              |
-| [Tool: execute_command(ls /project/todos)]   |
-| [v Expand]                                   |
-|                                              |
-| [Agent bubble, left]                          |
-| You have 3 overdue tasks:                    |
-| 1. Update API docs (due Apr 5)              |
-| 2. Fix login bug (due Apr 3)                |
-| 3. Deploy staging (due Apr 1)               |
-|                                              |
-|----------------------------------------------|
-| [_Type a message...__________] [>]           |
-+----------------------------------------------+
-```
-
-#### Sidebar Open (overlay)
-```
-+---260px---+------overlay backdrop------+
-|            |/////////////////////////////|
-| [+ New     |/////////////////////////////|
-|  Session]  |/////////////////////////////|
-|            |/////////////////////////////|
-| Sessions   |/////////////////////////////|
-|            |/////////////////////////////|
-| > Session 3|////////////////////////////|
-|   2 min ago|////////////////////////////|
-|            |/////////////////////////////|
-|  Session 2 |/////////////////////////////|
-|  1 hr ago  |/////////////////////////////|
-|            |/////////////////////////////|
-|  Session 1 |/////////////////////////////|
-|  Yesterday |/////////////////////////////|
-|            |/////////////////////////////|
-+------------+-----------------------------+
-```
-
-### 7.3 Empty State (New Session)
+### 7.2 Chat with Messages -- Desktop
 
 ```
-+---260px---+--------------------flex-grow--------------------+
-|            |                                                 |
-| [+ New     | Chat Header                                    |
-|  Session]  | Poten Agent - New Session       [* Connected]  |
-|            |------------------------------------------------|
-| Sessions   |                                                 |
-|            |                                                 |
-| > New      |                                                 |
-|   just now |            (chat bubble icon)                   |
-|            |                                                 |
-|  Session 2 |        Start a conversation                     |
-|  1 hr ago  |   Ask the agent about your project              |
-|            |                                                 |
-|  Session 1 |  [Show me tasks with deadlines]                 |
-|  Yesterday |  [List all project documents]                   |
-|            |  [Create a new task]                             |
-|            |                                                 |
-|            |                                                 |
-|            |                                                 |
-|            |------------------------------------------------|
-|            | [_Type a message...______________] [>]          |
-+------------+-------------------------------------------------+
++------------------------------------------------------------------------+
+|  [=]   Simple Chatbot                          [moonshotai/kimi-k2 v]  |
++------------------------------------------------------------------------+
+|         |                                                              |
+| SIDEBAR |                                                              |
+| w-[260] |                              +----------------------------+  |
+|         |                              | What is the weather today? |  |
+| [+New]  |                              +----------------------------+  |
+|         |                                                              |
+| Sess 1  |  +--+  +------------------------------------------------+  |
+| *Sess2* |  |AI|  | I don't have real-time weather access, but I   |  |
+| Sess 3  |  +--+  | can help you find weather info. Which city     |  |
+|         |        | are you interested in?                          |  |
+|         |        +------------------------------------------------+  |
+|         |                                                              |
+|         |                              +----------------------------+  |
+|         |                              | San Francisco              |  |
+|         |                              +----------------------------+  |
+|         |                                                              |
+|         |  +--+  +------+                                              |
+|         |  |AI|  | o o o|  <-- typing indicator (3 animated dots)      |
+|         |  +--+  +------+                                              |
+|         |                                                              |
+|         +--------------------------------------------------------------+
+|         |  +--------------------------------------------------+ +----+ |
+|         |  | Type a message...                                | | -> | |
+|         |  +--------------------------------------------------+ +----+ |
++------------------------------------------------------------------------+
 ```
 
-### 7.4 Error State
+### 7.3 Mobile -- Sidebar Closed
 
 ```
-+---260px---+--------------------flex-grow--------------------+
-|            |                                                 |
-| [+ New     | Chat Header                                    |
-|  Session]  | Poten Agent - Session 3        [! Disconnected]|
-|            |------------------------------------------------|
-| Sessions   | [! Cannot connect to API. Check server.] [Retry]|
-|            |                                                 |
-| > Session 3|                    [User bubble]                |
-|            |     Show me the project summary                 |
-|            |                                                 |
-|            |  [Agent bubble - partial]                        |
-|            |  Let me look at your pro...                     |
-|            |  [Error: Connection lost]                        |
-|            |                                                 |
-|            |------------------------------------------------|
-|            | [_Type a message...______________] [>]          |
-+------------+-------------------------------------------------+
++------------------------------------+
+|  [=]  Simple Chatbot    [Model v]  |
++------------------------------------+
+|                                    |
+|          [User message bubble]     |
+|                                    |
+|  [AI] [Assistant message bubble ]  |
+|       [continues here...        ]  |
+|                                    |
+|          [User message bubble]     |
+|                                    |
+|  [AI] [o o o]                      |
+|                                    |
++------------------------------------+
+| [Type a message...         ] [->]  |
++------------------------------------+
+```
+
+### 7.4 Mobile -- Sidebar Open (Overlay)
+
+```
++------------------------------------+
+|  SIDEBAR OVERLAY                   |
+|  bg-background, z-50, inset-0     |
+|                                    |
+|  +-----+                    +---+  |
+|  | App |                    | X |  |
+|  +-----+                    +---+  |
+|                                    |
+|  +------------------------------+  |
+|  | + New Chat                   |  |
+|  +------------------------------+  |
+|                                    |
+|  +------------------------------+  |
+|  | Session 1            [trash] |  |
+|  +------------------------------+  |
+|  +------------------------------+  |
+|  | Session 2 *active*   [trash] |  |
+|  +------------------------------+  |
+|  +------------------------------+  |
+|  | Session 3            [trash] |  |
+|  +------------------------------+  |
+|                                    |
++------------------------------------+
+```
+
+### 7.5 Delete Confirmation Dialog
+
+```
++--------------------------------------+
+|                                      |
+|   Delete conversation?               |
+|                                      |
+|   This will permanently delete this  |
+|   conversation and all its messages. |
+|                                      |
+|           [Cancel]  [Delete]         |
+|                                      |
++--------------------------------------+
 ```
 
 ---
 
-## 8. Micro-interactions and Animation Guidelines
+## 8. Micro-interactions & Animation Guidelines
 
-Keep animations minimal. This is a test UI -- perceived speed matters more than delight.
+### 8.1 Animation Timing
 
-### 8.1 Animation Tokens
+| Type | Duration | Easing | CSS |
+|------|----------|--------|-----|
+| Micro (hover, focus) | 150ms | ease-out | `transition-colors duration-150` |
+| Small (button press, toggle) | 200ms | ease-in-out | `transition-all duration-200` |
+| Medium (sidebar slide, dropdown) | 300ms | ease-in-out | `transition-transform duration-300` |
+| Large (page/overlay transitions) | 300-400ms | ease-in-out | Custom with Tailwind or Framer Motion |
 
-| Type | Duration | Easing | Usage |
-|------|----------|--------|-------|
-| Micro | 100ms | ease-out | Button hover, focus ring |
-| Small | 150ms | ease-in-out | Sidebar item hover, pill hover |
-| Medium | 200ms | ease-in-out | Sidebar slide (mobile), tool call expand |
-| Streaming | continuous | linear | Token append (no animation, instant render) |
+### 8.2 Specific Micro-interactions
 
-### 8.2 Specific Interactions
+#### Message Appearance
+- **Trigger:** New message added to thread
+- **Animation:** Fade in + slide up (translateY: 8px to 0, opacity: 0 to 1)
+- **Duration:** 200ms ease-out
+- **Implementation:** CSS transition or `animate-in fade-in slide-in-from-bottom-2` (Tailwind animate)
 
-| Interaction | Behavior |
-|-------------|----------|
-| **Send message** | Input clears instantly, user bubble appears with no animation, scroll to bottom |
-| **Token streaming** | Each token appends to the agent bubble. No per-token animation -- just text insertion. Auto-scroll follows unless user has scrolled up |
-| **Auto-scroll break** | If user scrolls up more than 100px from bottom, stop auto-scrolling. Show a "Scroll to bottom" floating button |
-| **Tool call expand** | Chevron rotates 180deg (150ms), content slides down (200ms, ease-in-out) |
-| **Streaming indicator** | Three dots, opacity pulse (0.3 to 1.0), staggered 150ms per dot, loop |
-| **Session switch** | Chat panel cross-fades (150ms) or instantly replaces. No slide animation |
-| **Sidebar open (mobile)** | Slide from left (200ms, ease-in-out) + backdrop fade-in |
-| **Sidebar close (mobile)** | Slide out left (200ms) + backdrop fade-out |
-| **Error banner** | Slide down from top (200ms), red background |
-| **Delete confirmation** | Simple browser `confirm()` dialog -- no custom modal needed for test UI |
-| **Button press** | Scale 0.97 on active (100ms) |
-| **New session appears** | Session item fades in at top of list (150ms) |
+#### Typing Indicator Dots
+- **Trigger:** Waiting for AI response
+- **Animation:** Three dots with staggered bounce (scale 1 to 1.4, translateY: 0 to -4px)
+- **Duration:** 600ms per cycle, infinite loop
+- **Stagger:** 150ms delay between each dot
+- **Implementation:** CSS `@keyframes` with `animation-delay`
 
-### 8.3 Scroll to Bottom Button
+```css
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot:nth-child(1) { animation-delay: 0ms; }
+.typing-dot:nth-child(2) { animation-delay: 150ms; }
+.typing-dot:nth-child(3) { animation-delay: 300ms; }
+```
 
-| Property | Value |
-|----------|-------|
-| Position | Floating, bottom-right of message list, 16px from edge |
-| Visibility | Only when user has scrolled up > 100px from bottom |
-| Background | White |
-| Border | 1px solid Gray 300 |
-| Shadow | shadow-md |
-| Icon | Chevron-down, 20px, Gray 700 |
-| Size | 36x36px |
-| Border Radius | radius-full |
-| On click | Smooth scroll to bottom, then hide |
-| aria-label | "Scroll to latest messages" |
+#### Sidebar Toggle (Mobile)
+- **Trigger:** User taps sidebar toggle button
+- **Animation:** Slide in from left (translateX: -100% to 0) with backdrop fade
+- **Duration:** 300ms ease-in-out
+- **Implementation:** shadcn `Sheet` component (side="left") handles this natively
+
+#### Button Hover
+- **Trigger:** Mouse enters button
+- **Animation:** Background color transition
+- **Duration:** 150ms ease-out
+- **Implementation:** Built into shadcn `Button` via Tailwind `transition-colors`
+
+#### Send Button State
+- **Trigger:** Input becomes non-empty / empty
+- **Animation:** Opacity 0.5 to 1 (or vice versa), slight scale pulse on send
+- **Duration:** 150ms
+- **Implementation:** Conditional `opacity-50 cursor-not-allowed` class
+
+#### Session Active Highlight
+- **Trigger:** User switches session
+- **Animation:** Background color transition to accent
+- **Duration:** 150ms
+- **Implementation:** `transition-colors duration-150`
+
+#### Auto-scroll to Bottom
+- **Trigger:** New message appears in thread
+- **Behavior:** Smooth scroll to bottom of message area
+- **Implementation:** `element.scrollIntoView({ behavior: 'smooth', block: 'end' })`
+- **Exception:** Do NOT auto-scroll if user has manually scrolled up (preserve scroll position)
+
+#### Toast Notification
+- **Trigger:** Error or success event
+- **Animation:** Slide in from right + fade, auto-dismiss with progress bar
+- **Duration:** Enter 300ms, exit 200ms, dismiss after 5000ms
+- **Implementation:** `sonner` library (shadcn-recommended toast)
 
 ---
 
@@ -793,171 +868,233 @@ Keep animations minimal. This is a test UI -- perceived speed matters more than 
 
 ### 9.1 WCAG 2.1 AA Requirements
 
-**Perceivable:**
-- [x] Color contrast: all text meets 4.5:1 minimum (Gray 900 on White = 15.4:1, Gray 700 on White = 8.6:1, Gray 500 on White = 5.0:1, Primary on White = 5.2:1)
-- [x] Connection status uses color + text label (not color alone)
-- [x] Error states use icon + color + text
-- [x] Tool call states use icon + text label
-- [x] Chat messages have visual grouping (alignment + background) plus `role` attribute for screen readers
-- [x] Responsive up to 200% zoom without horizontal scroll
+#### Perceivable
 
-**Operable:**
-- [x] All interactive elements keyboard accessible (Tab order: sidebar items, chat input, send button)
-- [x] Enter to send message, Shift+Enter for new line (documented in placeholder or tooltip)
-- [x] Escape to close mobile sidebar
-- [x] Skip link at top: "Skip to chat input" (for keyboard users)
-- [x] Focus indicators: 2px ring on all interactive elements
-- [x] Touch targets: minimum 44x44px (buttons, session items, send button padded)
-- [x] No keyboard traps (sidebar open/close, tool call expand)
+- [ ] All images and icons have appropriate `alt` text or `aria-label`
+- [ ] Bot avatar has `alt="AI Assistant"`
+- [ ] Color contrast meets 4.5:1 minimum for normal text (verified with shadcn defaults)
+- [ ] Color contrast meets 3:1 minimum for large text and UI components
+- [ ] Information is not conveyed by color alone (icons + text for states)
+- [ ] Content is responsive and usable at 200% zoom
+- [ ] Text can be resized up to 200% without loss of functionality
+- [ ] No content requires horizontal scrolling at 320px viewport width
 
-**Understandable:**
-- [x] `lang="en"` on HTML element
-- [x] Input has visible placeholder and associated label (visually hidden if needed)
-- [x] Error messages describe the problem and suggest action
-- [x] Consistent layout across all sessions
+#### Operable
 
-**Robust:**
-- [x] Semantic HTML: `<nav>` for sidebar, `<main>` for chat, `<form>` for input area
-- [x] ARIA landmarks: `role="complementary"` for sidebar, `role="main"` for chat, `role="log"` for message list
-- [x] `aria-live="polite"` on message list for screen reader announcements of new messages
-- [x] `aria-label` on icon-only buttons (send, delete, toggle sidebar)
-- [x] `aria-expanded` on collapsible tool call blocks
-- [x] `aria-current="true"` on active session item
+- [ ] All interactive elements are keyboard accessible (Tab, Enter, Escape, Arrow keys)
+- [ ] No keyboard traps (Escape closes modals/dropdowns/sidebar overlay)
+- [ ] Skip link provided: "Skip to chat" jumps to message input
+- [ ] Focus indicators are visible on all interactive elements (shadcn ring-2)
+- [ ] Touch targets are minimum 44x44px on mobile
+- [ ] Focus order follows logical reading order (sidebar, header, messages, input)
+- [ ] Chat input receives focus on page load and after sending a message
+- [ ] Sidebar sessions navigable with arrow keys
+- [ ] Enter key sends message; Shift+Enter inserts newline (documented in placeholder or tooltip)
+
+#### Understandable
+
+- [ ] `<html lang="en">` specified
+- [ ] Form labels are clear: input has visible placeholder + `aria-label="Type a message"`
+- [ ] Error messages are descriptive and suggest remediation
+- [ ] Navigation is consistent across all states
+- [ ] Confirm before destructive actions (delete session dialog)
+- [ ] Empty state provides clear guidance on what to do next
+
+#### Robust
+
+- [ ] Valid, semantic HTML markup (`<main>`, `<nav>`, `<aside>`, `<header>`)
+- [ ] ARIA landmarks: `role="main"` for chat, `role="complementary"` for sidebar, `role="banner"` for header
+- [ ] `aria-live="polite"` on the message thread container (announces new messages to screen readers)
+- [ ] `aria-busy="true"` on message area while AI is responding
+- [ ] `role="log"` on the message thread for assistive technology
+- [ ] All shadcn components include proper ARIA attributes by default
+- [ ] Works with screen readers (VoiceOver, NVDA)
 
 ### 9.2 Keyboard Navigation Map
 
 | Key | Context | Action |
 |-----|---------|--------|
-| Tab | Global | Move focus through interactive elements |
-| Enter | Chat input | Send message |
-| Shift+Enter | Chat input | New line |
-| Enter/Space | Session item | Select session |
-| Enter/Space | Tool call header | Toggle expand/collapse |
-| Escape | Mobile sidebar open | Close sidebar |
-| Escape | Chat input (focused) | No action (do not trap) |
+| `Tab` | Global | Move focus to next interactive element |
+| `Shift+Tab` | Global | Move focus to previous interactive element |
+| `Enter` | Chat input | Send message |
+| `Shift+Enter` | Chat input | Insert newline |
+| `Enter` | Session item (focused) | Switch to that session |
+| `Escape` | Sidebar overlay (mobile) | Close sidebar |
+| `Escape` | Dialog open | Close dialog |
+| `Escape` | Dropdown open | Close dropdown |
+| `Arrow Up/Down` | Session list | Navigate between sessions |
+| `Arrow Up/Down` | Model selector (open) | Navigate between models |
 
-### 9.3 Screen Reader Considerations
+### 9.3 Screen Reader Announcements
 
-- New messages announced via `aria-live="polite"` region
-- Agent streaming: announce once when streaming starts ("Agent is typing"), announce once when complete ("Agent response received")
-- Tool calls: announce "Agent called tool {name}" when tool call appears
-- Session switch: announce "Switched to session {title}" via live region
+| Event | Announcement (`aria-live`) |
+|-------|---------------------------|
+| User sends message | "Message sent" (assertive) |
+| AI response received | "[Assistant]: [first 100 chars of response]" (polite) |
+| AI is typing | "Assistant is typing" (polite) |
+| Session created | "New conversation created" (polite) |
+| Session deleted | "Conversation deleted" (polite) |
+| Session switched | "Switched to [session name]" (polite) |
+| Error occurred | "[Error message]" (assertive) |
 
 ---
 
 ## 10. Implementation Guidelines
 
-### 10.1 Technology Recommendations
+### 10.1 Design-to-Code Mapping
 
-Given the PRD specifies `test-ui/index.html` and `test-ui/app.js`, the simplest approach:
+| Design Token | CSS Variable / Tailwind | Notes |
+|--------------|-------------------------|-------|
+| Primary BG | `bg-primary` | User bubble, primary buttons |
+| Primary Text | `text-primary-foreground` | Text on primary |
+| Muted BG | `bg-muted` | Assistant bubble, sidebar |
+| Muted Text | `text-muted-foreground` | Secondary text |
+| Border | `border` | Dividers, input borders |
+| Focus Ring | `ring-2 ring-ring ring-offset-2` | Focus states |
+| Radius | `rounded-md` (buttons), `rounded-2xl` (bubbles) | Component-specific |
+| Shadow (dropdown) | `shadow-md` | Dropdowns, popovers |
 
-| Approach | Recommendation |
-|----------|---------------|
-| **Option A: Vanilla** | Single HTML file + vanilla JS. Use a CDN-loaded markdown renderer (marked.js). Zero build step. Best for speed to market. |
-| **Option B: React** | Lightweight React via CDN (no build) or Vite scaffold. Better for component reuse if UI grows. |
+### 10.2 Required shadcn/ui Components
 
-**Recommended: Option A (Vanilla)** for Phase 5.4 speed, with a clear path to migrate to React if needed.
+Install these components for the MVP:
 
-### 10.2 File Structure
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add input
+npx shadcn@latest add textarea
+npx shadcn@latest add select
+npx shadcn@latest add scroll-area
+npx shadcn@latest add alert-dialog
+npx shadcn@latest add sheet          # Mobile sidebar overlay
+npx shadcn@latest add dropdown-menu  # Model selector alternative
+npx shadcn@latest add separator
+npx shadcn@latest add tooltip
+npx shadcn@latest add sonner         # Toast notifications
+```
+
+### 10.3 Custom Components to Build
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `ChatBubble` | `components/chat-bubble.tsx` | User and assistant message bubbles |
+| `TypingIndicator` | `components/typing-indicator.tsx` | Animated three-dot indicator |
+| `ChatInput` | `components/chat-input.tsx` | Auto-growing textarea + send button |
+| `SessionSidebar` | `components/session-sidebar.tsx` | Session list with CRUD |
+| `SessionItem` | `components/session-item.tsx` | Individual session row |
+| `ModelSelector` | `components/model-selector.tsx` | Dropdown for model switching |
+| `EmptyState` | `components/empty-state.tsx` | Welcome screen with suggested prompts |
+| `ChatHeader` | `components/chat-header.tsx` | Top bar with toggle + model selector |
+
+### 10.4 File Structure
 
 ```
-test-ui/
-├── index.html          ← Single page, all layout
-├── styles.css          ← All styles (or inline in HTML)
-├── app.js              ← Application logic
-└── lib/
-    └── marked.min.js   ← Markdown rendering (CDN fallback)
+app/
+  layout.tsx          # Root layout, font loading, ThemeProvider
+  page.tsx            # Main (and only) page -- chat interface
+  globals.css         # Tailwind imports, shadcn CSS variables
+  api/
+    chat/route.ts     # POST /api/chat
+    sessions/
+      route.ts        # GET, POST /api/sessions
+      [id]/
+        route.ts      # DELETE /api/sessions/[id]
+        messages/
+          route.ts    # GET /api/sessions/[id]/messages
+
+components/
+  ui/                 # shadcn/ui generated components
+    button.tsx
+    input.tsx
+    textarea.tsx
+    select.tsx
+    scroll-area.tsx
+    alert-dialog.tsx
+    sheet.tsx
+    dropdown-menu.tsx
+    separator.tsx
+    tooltip.tsx
+    sonner.tsx
+  chat-bubble.tsx
+  typing-indicator.tsx
+  chat-input.tsx
+  session-sidebar.tsx
+  session-item.tsx
+  model-selector.tsx
+  empty-state.tsx
+  chat-header.tsx
+
+lib/
+  agent/
+    openrouter.ts     # LLM configuration
+  session-store.ts    # In-memory session management
+  utils.ts            # cn() helper (shadcn)
+  constants.ts        # Model list, default values
 ```
 
-### 10.3 API Integration
+### 10.5 State Management
 
-| Endpoint | Method | Purpose | Response Type |
-|----------|--------|---------|---------------|
-| `/chat` | POST | Send message | Streaming (SSE or chunked) |
-| `/sessions` | GET | List sessions | JSON array |
-| `/sessions` | POST | Create session | JSON object |
-| `/sessions/{id}` | DELETE | Delete session | 204 No Content |
-| `/sessions/{id}/messages` | GET | Load session history | JSON array |
+Client-side state (React `useState` / `useReducer`):
 
-#### Streaming Implementation
+| State | Type | Initial Value | Description |
+|-------|------|---------------|-------------|
+| `sessions` | `Session[]` | `[]` | List of all sessions |
+| `activeSessionId` | `string \| null` | `null` | Currently active session |
+| `messages` | `Message[]` | `[]` | Messages for active session |
+| `inputValue` | `string` | `""` | Current chat input text |
+| `isLoading` | `boolean` | `false` | Whether AI is responding |
+| `selectedModel` | `string` | `DEFAULT_MODEL` | Currently selected model |
+| `sidebarOpen` | `boolean` | `true` (desktop) / `false` (mobile) | Sidebar visibility |
 
-```javascript
-// Use fetch with ReadableStream for Lambda Response Streaming
-const response = await fetch('/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ sessionId, message })
-});
+**Types:**
 
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
+```typescript
+interface Session {
+  id: string;
+  title: string;       // Auto-generated from first message or "New Chat"
+  createdAt: string;    // ISO timestamp
+}
 
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  const chunk = decoder.decode(value);
-  appendToAgentBubble(chunk);
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  model?: string;       // Model used for this response
+  timestamp: string;    // ISO timestamp
 }
 ```
 
-### 10.4 Design-to-Code Token Mapping
+### 10.6 Asset Exports
 
-| Design Token | CSS Variable | Value |
-|--------------|-------------|-------|
-| Primary | `--color-primary` | #2563EB |
-| Primary Hover | `--color-primary-hover` | #1D4ED8 |
-| Primary Light | `--color-primary-light` | #EFF6FF |
-| Error | `--color-error` | #DC2626 |
-| Success | `--color-success` | #16A34A |
-| Warning | `--color-warning` | #D97706 |
-| Text Primary | `--color-text` | #111827 |
-| Text Secondary | `--color-text-secondary` | #374151 |
-| Text Muted | `--color-text-muted` | #6B7280 |
-| Border | `--color-border` | #D1D5DB |
-| BG Sidebar | `--color-bg-sidebar` | #F3F4F6 |
-| BG Chat | `--color-bg-chat` | #F9FAFB |
-| BG Surface | `--color-bg-surface` | #FFFFFF |
-| Font Primary | `--font-primary` | system-ui, sans-serif |
-| Font Mono | `--font-mono` | 'SF Mono', Consolas, monospace |
-| Radius SM | `--radius-sm` | 4px |
-| Radius MD | `--radius-md` | 8px |
-| Radius LG | `--radius-lg` | 16px |
-| Radius Full | `--radius-full` | 9999px |
-| Shadow SM | `--shadow-sm` | 0 1px 2px rgba(0,0,0,0.05) |
-| Shadow MD | `--shadow-md` | 0 2px 8px rgba(0,0,0,0.08) |
-| Sidebar Width | `--sidebar-width` | 260px |
-| Header Height | `--header-height` | 56px |
+| Asset Type | Format | Sizes | Notes |
+|------------|--------|-------|-------|
+| Icons | Lucide React (SVG) | 16, 20, 24px | Use `lucide-react` package |
+| Favicon | .ico + .svg | 16, 32, 180px | Simple bot icon |
+| OG Image | .png | 1200x630 | For link sharing (optional for MVP) |
 
-### 10.5 CSS Architecture
+**Key Icons (lucide-react):**
 
-Use CSS custom properties for all tokens. Organize styles by component:
+| Icon | Component | Usage |
+|------|-----------|-------|
+| `Send` | `<Send />` | Send button |
+| `Plus` | `<Plus />` | New chat |
+| `MessageSquare` | `<MessageSquare />` | Session icon |
+| `Trash2` | `<Trash2 />` | Delete session |
+| `PanelLeftClose` | `<PanelLeftClose />` | Close sidebar |
+| `PanelLeftOpen` | `<PanelLeftOpen />` | Open sidebar |
+| `Bot` | `<Bot />` | Assistant avatar, empty state |
+| `User` | `<User />` | User avatar (optional) |
+| `ChevronDown` | `<ChevronDown />` | Dropdown indicator |
+| `Loader2` | `<Loader2 />` | Spinner (with `animate-spin`) |
+| `AlertCircle` | `<AlertCircle />` | Error states |
+| `X` | `<X />` | Close sidebar (mobile) |
 
-```css
-/* Structure: */
-/* 1. Reset / Base */
-/* 2. CSS Variables (tokens) */
-/* 3. Layout (shell, sidebar, chat panel) */
-/* 4. Components (buttons, inputs, bubbles, tool calls) */
-/* 5. States (hover, focus, active, disabled) */
-/* 6. Responsive (@media queries) */
-/* 7. Animations (@keyframes) */
-```
+### 10.7 Performance Considerations
 
-Total estimated CSS: ~300 lines. No preprocessor needed.
-
-### 10.6 Key Implementation Notes
-
-1. **Auto-resize textarea**: Use a hidden div mirror or `scrollHeight` adjustment on input event. Cap at 6 lines (~144px).
-
-2. **Markdown rendering**: Use marked.js with `sanitize: true`. Apply styles to rendered HTML inside agent bubbles. Ensure code blocks get monospace + dark background.
-
-3. **Streaming auto-scroll**: Track `isUserScrolledUp` state. On scroll event, check if `scrollTop + clientHeight >= scrollHeight - 100`. If true, re-enable auto-scroll.
-
-4. **Session persistence**: Store `activeSessionId` in `localStorage` so page reload returns to the same session.
-
-5. **Optimistic UI**: When sending a message, immediately show user bubble and streaming indicator before API responds. If API fails, show error state on the message.
-
-6. **Mobile sidebar**: Use CSS `transform: translateX(-100%)` for hidden state, `translateX(0)` for visible. Backdrop is a separate div with pointer-events.
+- **Message rendering:** Virtualize long message lists if sessions exceed ~200 messages (use `react-virtuoso` or similar). For MVP, not needed.
+- **Auto-scroll:** Use `useRef` + `scrollIntoView` with `IntersectionObserver` to detect when user scrolls up.
+- **Debounce:** No debounce needed on Enter-to-send. If adding search/filter later, debounce at 300ms.
+- **Bundle size:** shadcn/ui components are copy-pasted (not a dependency), so tree-shaking is not an issue. Lucide icons are individually imported.
+- **Fonts:** Load Inter via `next/font/google` for automatic optimization and no layout shift.
 
 ---
 
@@ -965,36 +1102,41 @@ Total estimated CSS: ~300 lines. No preprocessor needed.
 
 | Decision | Rationale | Alternatives Considered |
 |----------|-----------|------------------------|
-| System fonts over web fonts | Zero load time, this is a test UI | Inter via Google Fonts (adds ~100ms) |
-| Vanilla JS over React | Matches PRD file structure (index.html + app.js), zero build step | React via CDN, Vite scaffold |
-| 2 breakpoints only (mobile/desktop) | Test UI does not need tablet-specific layout | 3 breakpoints with tablet |
-| No dark mode in v1 | Speed to market; can add with CSS variables later | Ship with dark mode toggle |
-| Browser confirm() for delete | Fastest to implement, adequate for test UI | Custom modal component |
-| Right-aligned user bubbles | Universal chat convention, instant recognition | Same-side alignment |
-| Streaming via ReadableStream | Matches Lambda Response Streaming (PRD 5.3) | SSE, WebSocket |
-| No avatar icons | Unnecessary for 2-party dev chat | User/Bot avatars |
-| Tool calls inline (not sidebar) | Keeps context in flow, developer can see cause and effect | Separate tool call panel |
-| Suggested prompts in empty state | Helps testers know what to try without reading docs | Blank empty state |
+| Single-page chat layout | PRD specifies one main page; chat apps are inherently single-page experiences | Multi-page with separate settings page -- unnecessary complexity for MVP |
+| shadcn/ui defaults with no custom theme | Speed to market priority; shadcn Zinc palette is neutral and professional | Custom brand colors -- adds design time with no user benefit for MVP |
+| Chat bubbles with rounded corners (2xl) | Creates a conversational, friendly feel familiar from messaging apps | Flat messages without bubbles (like Slack) -- less visually distinct |
+| Sidebar for sessions (not tabs/dropdown) | Familiar pattern from ChatGPT/Claude; allows easy session switching | Tabs above chat -- limited horizontal space; Dropdown -- hides session list |
+| Enter to send, Shift+Enter for newline | Industry standard for chat applications; matches user expectations | Send button only -- slower for keyboard users |
+| Mobile sidebar as overlay (Sheet) | Preserves full chat width on mobile; clean transition | Persistent mini sidebar -- takes too much mobile screen space |
+| In-memory sessions (no persistence) | PRD specifies in-memory; simplest implementation for MVP | LocalStorage -- adds complexity; Database -- overkill for MVP |
+| Hardcoded model list | MVP scope; no API endpoint for model discovery | Fetch from OpenRouter API -- adds complexity, rate limits, loading state |
+| Toast for errors (not inline) | Errors are transient; toast doesn't break layout | Inline error banners -- persistent, takes space; Modal -- too disruptive |
+| No dark mode toggle for MVP | Speed to market; shadcn supports it but adds UI surface area | Include toggle -- can be added in Phase 2 with minimal effort |
 
 ---
 
 ## 12. Next Steps
 
-1. [ ] Review and approve this design plan
-2. [ ] Implement HTML structure (`test-ui/index.html`)
-3. [ ] Implement CSS with design tokens (`test-ui/styles.css`)
-4. [ ] Implement chat logic and streaming (`test-ui/app.js`)
-5. [ ] Integrate with Lambda API endpoints (Phase 5.1-5.3)
-6. [ ] Test session switching and persistence
-7. [ ] Verify accessibility with keyboard navigation
-8. [ ] Test on mobile viewport
-9. [ ] Iterate based on agent testing feedback
+1. [ ] Initialize Next.js 15 project with Tailwind CSS and shadcn/ui
+2. [ ] Install required shadcn/ui components (button, textarea, select, scroll-area, alert-dialog, sheet, sonner)
+3. [ ] Build layout structure (sidebar + chat area + input bar)
+4. [ ] Implement ChatBubble and TypingIndicator components
+5. [ ] Wire up ChatInput with Enter/Shift+Enter behavior
+6. [ ] Connect to API routes for session CRUD and chat
+7. [ ] Add ModelSelector dropdown
+8. [ ] Implement mobile responsive layout with Sheet sidebar
+9. [ ] Add empty state and suggested prompts
+10. [ ] Run accessibility audit (keyboard navigation, screen reader, contrast)
+11. [ ] Test across breakpoints (mobile, tablet, desktop)
+12. [ ] Optional Phase 2: Dark mode toggle, message streaming, markdown rendering
 
 ---
 
 ## References
 
 - [WCAG 2.1 Quick Reference](https://www.w3.org/WAI/WCAG21/quickref/)
-- [MDN: ReadableStream](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream)
-- [marked.js](https://marked.js.org/) - Markdown renderer
-- PRD: Virtual FS + AI Agent Implementation Plan v2
+- [shadcn/ui Documentation](https://ui.shadcn.com/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Lucide Icons](https://lucide.dev/icons)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- [Sonner Toast Library](https://sonner.emilkowal.dev/)
