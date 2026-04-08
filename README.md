@@ -5,79 +5,22 @@ An AI agent that reasons over a **Virtual File System** backed by PostgreSQL. Fi
 ## Architecture Overview
 
 ```mermaid
-graph TB
-    subgraph Browser["Browser (Next.js React)"]
-        UI[Chat UI]
-        Sidebar[Session Sidebar<br/>+ Document List]
-        Upload[File Upload]
-    end
-
-    subgraph NextJS["Next.js API Routes"]
-        ChatAPI[POST /api/chat]
-        SessionAPI[/api/sessions]
-        DocAPI[POST /api/documents]
-    end
-
-    subgraph Agent["DeepAgents (LangGraph)"]
-        DA[DeepAgent]
-        Tools[Agent Tools]
-        SP[System Prompt]
-    end
-
-    subgraph VFS["Virtual FS Engine"]
-        JB[just-bash<br/>Bash Interpreter]
-        VF[VirtualFs<br/>IFileSystem]
-        TB[TreeBuilder<br/>In-Memory Map]
-        CL[CacheLayer<br/>TTL 30s]
-        GO[GrepOptimizer<br/>Coarse → Fine]
-    end
-
-    subgraph DB["PostgreSQL"]
-        Sessions[(sessions)]
-        Messages[(messages)]
-        Projects[(projects)]
-        Documents[(documents)]
-        Todos[(todos)]
-        Events[(events)]
-    end
-
-    LLM[OpenRouter<br/>Kimi K2 / Claude / GPT]
-
-    UI -->|fetch| ChatAPI
-    Sidebar -->|fetch| SessionAPI
-    Upload -->|FormData| DocAPI
-
-    ChatAPI --> DA
-    DA --> Tools
-    DA --> SP
-    DA -->|LLM call| LLM
-
-    Tools -->|execute_command| JB
-    Tools -->|create_task| Todos
-    Tools -->|update_task| Todos
-    Tools -->|create_event| Events
-    Tools -->|search_docs| Documents
-
-    JB -->|ls, cat, grep| VF
-    VF --> TB
-    VF --> CL
-    VF --> GO
-
-    TB -->|bootstrap once| Documents
-    CL -->|cache reads| Documents
-    GO -->|ILIKE coarse| Documents
-
-    ChatAPI --> Sessions
-    ChatAPI --> Messages
-    DocAPI --> Documents
-    SessionAPI --> Sessions
-
-    style Browser fill:#1a1a2e,stroke:#e94560,color:#fff
-    style NextJS fill:#16213e,stroke:#0f3460,color:#fff
-    style Agent fill:#0f3460,stroke:#533483,color:#fff
-    style VFS fill:#533483,stroke:#e94560,color:#fff
-    style DB fill:#1a1a2e,stroke:#0f3460,color:#fff
+flowchart LR
+    A[Browser] --> B[Next.js API]
+    B --> C[DeepAgent]
+    C --> D[OpenRouter LLM]
+    C --> E[Virtual FS Engine]
+    E --> F[(PostgreSQL)]
+    B --> F
 ```
+
+**Layers:**
+- **Browser** — Chat UI with session sidebar, document list, model selector
+- **Next.js API** — Routes for `/api/chat`, `/api/sessions`, `/api/documents`
+- **DeepAgent** — LangGraph agent with 5 tools (execute_command, create_task, update_task, create_event, search_docs)
+- **Virtual FS Engine** — TreeBuilder + CacheLayer + GrepOptimizer + just-bash
+- **PostgreSQL** — Stores files, sessions, messages, tasks, events
+- **OpenRouter** — LLM gateway (Kimi K2, Claude, GPT-4o)
 
 ## How It Works
 
@@ -85,94 +28,45 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant UI as Chat UI
-    participant API as POST /api/chat
-    participant Agent as DeepAgent
-    participant VFS as VirtualFs
-    participant DB as PostgreSQL
-    participant LLM as OpenRouter
-
-    User->>UI: "Show me project files"
-    UI->>API: { message, project_id, session_id }
+    User->>API: Send message + project_id
     API->>DB: Save user message
     API->>Agent: Invoke with history
-
-    Agent->>LLM: What tools should I use?
-    LLM-->>Agent: Call execute_command("ls /")
-
-    Agent->>VFS: exec("ls /")
-    Note over VFS: TreeBuilder answers<br/>from in-memory Map<br/>(no DB call!)
-    VFS-->>Agent: "docs/  src/  uploads/"
-
-    Agent->>LLM: Here are the results, respond to user
-    LLM-->>Agent: "Your project has 3 directories..."
-
-    Agent-->>API: Response text
+    Agent->>LLM: Decide which tool to use
+    LLM-->>Agent: execute_command "ls /"
+    Agent->>VFS: ls /
+    VFS-->>Agent: docs/ src/ uploads/
+    Agent->>LLM: Format response
+    LLM-->>Agent: Response text
     API->>DB: Save assistant message
-    API-->>UI: { message, session_id }
-    UI-->>User: Renders markdown response
+    API-->>User: Rendered markdown
 ```
 
 ### Flow 2: User Uploads a Document
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant Sidebar as Document List
-    participant API as POST /api/documents
-    participant DB as PostgreSQL
-    participant Agent as DeepAgent
-    participant VFS as VirtualFs
-
-    User->>Sidebar: Click "Upload File"
-    User->>Sidebar: Select meeting-notes.md
-    Sidebar->>API: FormData { file, project_id }
-
-    API->>DB: Create /uploads directory (if needed)
-    API->>DB: INSERT document at /uploads/meeting-notes.md
-    API-->>Sidebar: { success, path }
-    Sidebar->>Sidebar: Refresh document list
-
-    Note over User: Later...
-    User->>Agent: "Read my uploaded meeting notes"
-    Agent->>VFS: exec("cat /uploads/meeting-notes.md")
-    VFS->>DB: SELECT content WHERE path = '/uploads/meeting-notes.md'
-    Note over VFS: Content cached<br/>for 30 seconds
+    User->>Sidebar: Click Upload File
+    Sidebar->>API: POST /api/documents
+    API->>DB: INSERT into documents table
+    API-->>Sidebar: Success
+    Sidebar->>Sidebar: Refresh file list
+    User->>Agent: Read my uploaded file
+    Agent->>VFS: cat /uploads/file.md
+    VFS->>DB: SELECT content
     VFS-->>Agent: File contents
-    Agent-->>User: "Here's what your meeting notes say..."
+    Agent-->>User: Here is what the file says
 ```
 
-### Flow 3: Agent Searches for Information (Grep)
+### Flow 3: Grep Search (Coarse to Fine)
 
 ```mermaid
 sequenceDiagram
-    participant Agent as DeepAgent
-    participant JB as just-bash
-    participant GO as GrepOptimizer
-    participant DB as PostgreSQL
-    participant Cache as CacheLayer
-
-    Agent->>JB: exec('grep -r "TODO" /src')
-
-    JB->>GO: grep("TODO", { filePattern: "/src/*" })
-
-    Note over GO: Step 1: Coarse Filter
-    GO->>DB: SELECT path FROM documents<br/>WHERE content ILIKE '%TODO%'
-    DB-->>GO: ["/src/index.ts", "/src/app.ts"]
-
-    Note over GO: Step 2: Bulk Prefetch
-    GO->>Cache: Check cache for each file
-    Cache-->>GO: Miss on /src/app.ts
-    GO->>DB: SELECT content WHERE path = '/src/app.ts'
-    DB-->>GO: File content
-    GO->>Cache: Store with 30s TTL
-
-    Note over GO: Step 3: Fine Filter
-    GO->>GO: Regex match line-by-line
-
-    GO-->>JB: [{ path, line: 12, content: "// TODO: fix" }]
-    JB-->>Agent: "src/index.ts:12: // TODO: fix this"
+    Agent->>GrepOptimizer: grep "TODO" /src
+    GrepOptimizer->>DB: ILIKE coarse filter
+    DB-->>GrepOptimizer: Candidate files
+    GrepOptimizer->>Cache: Prefetch contents
+    GrepOptimizer->>GrepOptimizer: Regex fine filter
+    GrepOptimizer-->>Agent: Matched lines
 ```
 
 ## Tech Stack
@@ -223,60 +117,16 @@ erDiagram
     projects ||--o{ todos : has
     projects ||--o{ events : has
     sessions ||--o{ messages : contains
-
-    projects {
-        uuid id PK
-        text name
-        text slug UK
-        text description
-        uuid owner_id
-        jsonb metadata
-    }
-
-    documents {
-        uuid id PK
-        uuid project_id FK
-        text path
-        text name
-        text type
-        text content
-        int chunk_index
-        int size_bytes
-    }
-
-    todos {
-        uuid id PK
-        uuid project_id FK
-        text title
-        text status
-        text priority
-        text assignee
-        timestamptz due_date
-    }
-
-    events {
-        uuid id PK
-        uuid project_id FK
-        text title
-        timestamptz start_time
-        timestamptz end_time
-        text location
-    }
-
-    sessions {
-        uuid id PK
-        text title
-        timestamptz created_at
-    }
-
-    messages {
-        uuid id PK
-        uuid session_id FK
-        text role
-        text content
-        text model
-    }
 ```
+
+| Table | Columns |
+|-------|---------|
+| **projects** | id, name, slug, description, owner_id, metadata |
+| **documents** | id, project_id, path, name, type, content, chunk_index, size_bytes |
+| **todos** | id, project_id, title, status, priority, assignee, due_date, tags |
+| **events** | id, project_id, title, start_time, end_time, location, attendees |
+| **sessions** | id, title, created_at |
+| **messages** | id, session_id, role, content, model |
 
 ## Getting Started
 
@@ -335,7 +185,7 @@ DATABASE_URL=postgresql://user@localhost:5432/chatbot
 
 1. **Files in database, not disk** — enables the agent to manage context without filesystem access, portable to serverless (AWS Lambda)
 2. **Tree bootstrapped once** — full directory tree loaded into memory on init, `ls`/`find` are instant (no DB calls)
-3. **Grep: coarse then fine** — PostgreSQL ILIKE narrows candidates, in-memory regex does precise matching. Avoids full-table scans.
+3. **Grep: coarse then fine** — PostgreSQL ILIKE narrows candidates, in-memory regex does precise matching
 4. **30-second cache** — prevents redundant DB reads during multi-step agent reasoning loops
 5. **OpenRouter for LLM** — switch between Kimi K2, Claude, GPT-4o without code changes
 
