@@ -74,6 +74,10 @@ class SessionStore {
         role: message.role,
         content: message.content,
         model: message.model ?? null,
+        promptTokens: message.tokenUsage?.promptTokens ?? 0,
+        completionTokens: message.tokenUsage?.completionTokens ?? 0,
+        totalTokens: message.tokenUsage?.totalTokens ?? 0,
+        mode: message.mode ?? null,
       })
       .returning();
 
@@ -82,6 +86,14 @@ class SessionStore {
       role: row.role as "user" | "assistant",
       content: row.content,
       model: row.model ?? undefined,
+      tokenUsage: row.totalTokens
+        ? {
+            promptTokens: row.promptTokens ?? 0,
+            completionTokens: row.completionTokens ?? 0,
+            totalTokens: row.totalTokens ?? 0,
+          }
+        : undefined,
+      mode: (row.mode as "vfs" | "rag") ?? undefined,
       timestamp: row.timestamp.toISOString(),
     };
   }
@@ -99,6 +111,14 @@ class SessionStore {
         role: r.role as "user" | "assistant",
         content: r.content,
         model: r.model ?? undefined,
+        tokenUsage: r.totalTokens
+          ? {
+              promptTokens: r.promptTokens ?? 0,
+              completionTokens: r.completionTokens ?? 0,
+              totalTokens: r.totalTokens ?? 0,
+            }
+          : undefined,
+        mode: (r.mode as "vfs" | "rag") ?? undefined,
         timestamp: r.timestamp.toISOString(),
       }));
     } catch {
