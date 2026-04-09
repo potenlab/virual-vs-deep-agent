@@ -168,20 +168,104 @@ DATABASE_URL=postgresql://user@localhost:5432/chatbot
 
 ## How It Works
 
-### Upload Flow
+### Step 1: Document Upload (Same for Both Modes)
+
+When a user uploads a file, it goes through a pipeline that prepares it for **both** VFS and RAG:
+
+```mermaid
+flowchart TD
+    A[User uploads file.pdf] --> B{Is it a PDF?}
+    B -->|Yes| C[pdf-parse extracts text from binary]
+    B -->|No| D[Read as plain text]
+    C --> E[Plain text string]
+    D --> E
+    E --> F[Store text in documents.content column]
+    F --> G[Generate 1536-dim embedding via OpenRouter]
+    G --> H[Store vector in documents.embedding column]
+```
+
+**Key point:** PDFs are binary files, but we **never store the binary**. The `pdf-parse` library extracts readable text at upload time. The database only holds plain text. When the agent later runs `cat /uploads/file.pdf`, it gets the extracted text, not binary data.
+
+After upload, each document has two representations in PostgreSQL:
+
+| Column | Used by | What it stores |
+|--------|---------|----------------|
+| `content` (text) | VFS mode | Full extracted text (can be 100K+ chars) |
+| `embedding` (vector) | RAG mode | 1536 numbers representing the text's meaning |
+
+### Step 2A: VFS Mode — Agent Browses Files
+
+The agent acts like a developer in a terminal. It decides which commands to run:
+
+```mermaid
+sequenceDiagram
+    User->>Agent: "Compare the 2 uploaded ebooks"
+    Agent->>LLM: What should I do?
+    LLM-->>Agent: Call run_vfs("ls /uploads")
+    Agent->>DB: SELECT name FROM documents WHERE path LIKE '/uploads/%'
+    DB-->>Agent: art-of-war.pdf, 48-laws.pdf
+    Agent->>LLM: I found 2 files, now what?
+    LLM-->>Agent: Call run_vfs("cat /uploads/art-of-war.pdf")
+    Agent->>DB: SELECT content FROM documents WHERE path = '...'
+    DB-->>Agent: Full extracted text (110K chars)
+    Agent->>LLM: Now read the other file
+    LLM-->>Agent: Call run_vfs("cat /uploads/48-laws.pdf")
+    Agent->>DB: SELECT content FROM documents WHERE path = '...'
+    DB-->>Agent: Full extracted text (33K chars)
+    Agent->>LLM: I have both files, generate comparison
+    LLM-->>User: Here's the comparison table...
+```
+
+**VFS reads the `content` column directly.** Embeddings are not involved. Each `cat` command is a separate database query and a new LLM round-trip.
+
+### Step 2B: RAG Mode — Documents Pre-Fetched by Similarity
+
+No file browsing. Relevant documents are found mathematically and injected before the LLM thinks:
+
+```mermaid
+sequenceDiagram
+    User->>API: "Compare the 2 uploaded ebooks"
+    API->>OpenRouter: Embed "Compare the 2 uploaded ebooks"
+    OpenRouter-->>API: [0.023, -0.041, 0.087, ...] (1536 numbers)
+    API->>DB: Find closest vectors (cosine similarity)
+    DB-->>API: art-of-war.pdf (0.82), 48-laws.pdf (0.79)
+    API->>API: Inject both docs into system prompt
+    API->>LLM: System prompt + retrieved context + user question
+    LLM-->>User: Here's the comparison... (single call)
+```
+
+**RAG reads the `embedding` column for search, then `content` for context injection.** The agent never runs `ls` or `cat` — the documents are already in the prompt.
+
+### How Embeddings Work (RAG Only)
+
+Embeddings convert text into numbers that capture meaning. Similar texts have similar numbers.
 
 ```
-Upload PDF → Extract text (pdf-parse) → Store in documents table → Generate embedding (OpenRouter) → Store vector in pgvector
+"military strategy and war tactics"     → [0.23, -0.04, 0.87, ...]
+"power dynamics and social manipulation" → [0.19, -0.11, 0.72, ...]
+"chocolate cake recipe"                 → [-0.45, 0.33, -0.12, ...]
 ```
 
-### VFS Chat Flow
+When you ask "compare the ebooks about strategy":
+1. Your question becomes a vector: `[0.21, -0.06, 0.81, ...]`
+2. pgvector compares it against every document's vector using cosine distance
+3. Art of War (0.82 similarity) and 48 Laws (0.79) are closest
+4. Chocolate cake recipe (0.12) is far away — not returned
 
-```
-User question → Create ReAct agent with VFS tools → Agent calls run_vfs (ls, cat, grep) → Multiple LLM rounds → Response with token count
-```
+VFS mode **ignores embeddings entirely** — it reads files by path, not by meaning.
 
-### RAG Chat Flow
+### Side-by-Side: Same Question, Different Approaches
 
-```
-User question → Embed query → pgvector cosine search → Inject top-5 chunks → Single LLM call → Response with token count
-```
+**Question:** "What's in my uploaded PDFs?"
+
+| Step | VFS Mode | RAG Mode |
+|------|---------|---------|
+| 1 | LLM decides to run `ls /uploads` | Embed the question into a vector |
+| 2 | DB returns file list | pgvector finds top-5 similar documents |
+| 3 | LLM decides to `cat` each file | Inject document text into prompt |
+| 4 | DB returns full text per file | Single LLM call with context |
+| 5 | LLM reads text, responds | LLM reads injected context, responds |
+| **DB queries** | 3+ (ls + cat per file) | 2 (embed + vector search) |
+| **LLM calls** | 3-5 (tool loop) | 1 (single inference) |
+| **Content seen** | Full file (100K+ chars) | Truncated 2K chars per doc |
+| **Embeddings used** | No | Yes |
