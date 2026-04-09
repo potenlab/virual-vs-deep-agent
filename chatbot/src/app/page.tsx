@@ -11,17 +11,18 @@ import { ChatBubble } from "@/components/chat/chat-bubble";
 import { ChatInput } from "@/components/chat/chat-input";
 import { SessionSidebar } from "@/components/session/session-sidebar";
 import { DeleteConfirmDialog } from "@/components/session/delete-confirm-dialog";
-import { TypingIndicator } from "@/components/common/typing-indicator";
+import { ActivityIndicator } from "@/components/common/activity-indicator";
 import { EmptyState } from "@/components/common/empty-state";
 
 export default function Home() {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [selectedMode, setSelectedMode] = useState<"vfs" | "rag">("vfs");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const { messages, isLoading, sendMessage, setMessages } = useChat();
+  const { messages, isLoading, agentStatus, sendMessage, setMessages } = useChat();
 
   const {
     sessions,
@@ -62,6 +63,7 @@ export default function Home() {
         message,
         sessionId: activeSessionId ?? undefined,
         model: selectedModel,
+        mode: selectedMode,
       });
 
       if (sessionId && !activeSessionId) {
@@ -69,7 +71,7 @@ export default function Home() {
         await refreshSessions();
       }
     },
-    [sendMessage, activeSessionId, selectedModel, setActiveSessionId, refreshSessions],
+    [sendMessage, activeSessionId, selectedModel, selectedMode, setActiveSessionId, refreshSessions],
   );
 
   const handleDeleteRequest = useCallback((id: string) => {
@@ -121,6 +123,8 @@ export default function Home() {
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
+          selectedMode={selectedMode}
+          onModeChange={setSelectedMode}
         />
 
         <main role="main" className="flex-1 overflow-hidden">
@@ -140,12 +144,13 @@ export default function Home() {
                     role={msg.role}
                     content={msg.content}
                     tokenUsage={msg.tokenUsage}
+                    mode={msg.mode}
                   />
                 ))}
               </div>
             )}
 
-            {isLoading && <TypingIndicator />}
+            {isLoading && <ActivityIndicator status={agentStatus} />}
 
             {/* Scroll anchor */}
             <div ref={messagesEndRef} />

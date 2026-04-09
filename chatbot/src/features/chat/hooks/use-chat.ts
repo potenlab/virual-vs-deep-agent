@@ -8,18 +8,20 @@ import { useSendMessage } from "../api/use-send-message";
 interface UseChatReturn {
   messages: Message[];
   isLoading: boolean;
+  agentStatus: string | null;
   error: string | null;
   sendMessage: (params: {
     message: string;
     sessionId?: string;
     model?: string;
-    projectId?: string;
+    mode?: "vfs" | "rag";
   }) => Promise<string | null>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
 export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const {
     sendMessage: sendApiMessage,
     isLoading,
@@ -31,7 +33,7 @@ export function useChat(): UseChatReturn {
       message: string;
       sessionId?: string;
       model?: string;
-      projectId?: string;
+      mode?: "vfs" | "rag";
     }): Promise<string | null> => {
       const userMessage: Message = {
         id: crypto.randomUUID(),
@@ -41,14 +43,20 @@ export function useChat(): UseChatReturn {
       };
 
       setMessages((prev) => [...prev, userMessage]);
+      setAgentStatus("Thinking...");
 
       try {
-        const response = await sendApiMessage({
-          message: params.message,
-          session_id: params.sessionId,
-          model: params.model,
-          project_id: params.projectId,
-        });
+        const response = await sendApiMessage(
+          {
+            message: params.message,
+            session_id: params.sessionId,
+            model: params.model,
+            mode: params.mode,
+          },
+          (status) => setAgentStatus(status),
+        );
+
+        setAgentStatus(null);
 
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
@@ -57,14 +65,14 @@ export function useChat(): UseChatReturn {
           model: response.model,
           timestamp: new Date().toISOString(),
           tokenUsage: response.token_usage,
+          mode: response.mode,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
-
         return response.session_id;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Something went wrong";
+        setAgentStatus(null);
+        const errorMessage = err instanceof Error ? err.message : "Something went wrong";
         toast.error(errorMessage);
         return null;
       }
@@ -72,5 +80,5 @@ export function useChat(): UseChatReturn {
     [sendApiMessage],
   );
 
-  return { messages, isLoading, error, sendMessage, setMessages };
+  return { messages, isLoading, agentStatus, error, sendMessage, setMessages };
 }
