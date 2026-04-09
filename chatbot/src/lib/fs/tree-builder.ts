@@ -1,17 +1,13 @@
 import { db } from "@/lib/db";
 import { documents } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { normalizePath, dirname } from "./path-utils";
 import type { TreeNode } from "@/types";
 
 export class TreeBuilder {
-  /** path → TreeNode */
   private nodes = new Map<string, TreeNode>();
-  /** parent path → Set of child paths */
   private children = new Map<string, Set<string>>();
   private initialized = false;
-
-  constructor(private projectId: string) {}
 
   async bootstrap(): Promise<void> {
     const rows = await db
@@ -23,20 +19,12 @@ export class TreeBuilder {
         updatedAt: documents.updatedAt,
       })
       .from(documents)
-      .where(eq(documents.projectId, this.projectId))
       .orderBy(asc(documents.path));
 
     this.nodes.clear();
     this.children.clear();
 
-    // Ensure root exists
-    this.addNode({
-      path: "/",
-      name: "/",
-      type: "directory",
-      size: 0,
-      updatedAt: new Date().toISOString(),
-    });
+    this.addNode({ path: "/", name: "/", type: "directory", size: 0, updatedAt: new Date().toISOString() });
 
     for (const row of rows) {
       this.addNode({
@@ -65,10 +53,7 @@ export class TreeBuilder {
   }
 
   private ensureInit(): void {
-    if (!this.initialized)
-      throw new Error(
-        "TreeBuilder not initialized. Call bootstrap() first.",
-      );
+    if (!this.initialized) throw new Error("TreeBuilder not initialized. Call bootstrap() first.");
   }
 
   readdir(dirPath: string): string[] {
@@ -98,13 +83,8 @@ export class TreeBuilder {
     const results: string[] = [];
     for (const [path, node] of this.nodes) {
       if (path === "/") continue;
-      if (
-        path.startsWith(base === "/" ? "/" : base + "/") ||
-        path === base
-      ) {
-        if (regex.test(node.name) || regex.test(path)) {
-          results.push(path);
-        }
+      if (path.startsWith(base === "/" ? "/" : base + "/") || path === base) {
+        if (regex.test(node.name) || regex.test(path)) results.push(path);
       }
     }
     return results.sort();
@@ -112,16 +92,12 @@ export class TreeBuilder {
 
   allFiles(): string[] {
     this.ensureInit();
-    const files: string[] = [];
-    for (const [path, node] of this.nodes) {
-      if (node.type === "file") files.push(path);
-    }
-    return files;
+    return Array.from(this.nodes.entries())
+      .filter(([, node]) => node.type === "file")
+      .map(([path]) => path);
   }
 
-  addOrUpdate(node: TreeNode): void {
-    this.addNode(node);
-  }
+  addOrUpdate(node: TreeNode): void { this.addNode(node); }
 
   remove(path: string): void {
     const normalized = normalizePath(path);
@@ -133,9 +109,6 @@ export class TreeBuilder {
 }
 
 function globToRegex(pattern: string): RegExp {
-  const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*/g, ".*")
-    .replace(/\?/g, ".");
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
   return new RegExp(escaped, "i");
 }
