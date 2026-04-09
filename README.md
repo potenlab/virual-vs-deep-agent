@@ -1,139 +1,131 @@
 # Virtual FS + AI Agent Engine
 
-An AI agent that reasons over a **Virtual File System** backed by PostgreSQL. Files don't live on disk — they live in a database. The agent uses terminal commands (`ls`, `cat`, `grep`) to browse, read, and search project data, while managing context dynamically without exceeding token limits.
+An AI agent that reasons over a **Virtual File System** backed by PostgreSQL. Files don't live on disk — they live in a database. The agent uses terminal commands (`ls`, `cat`, `grep`) to browse, read, and search project data.
 
-## Architecture Overview
+This project compares two approaches side-by-side: **VFS (Virtual File System)** vs **RAG (Retrieval-Augmented Generation)** — measuring token consumption and response quality for each.
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[Browser] --> B[Next.js API]
-    B --> C[DeepAgent]
+    A[Browser] --> B[Next.js API SSE]
+    B --> C[LangGraph ReAct Agent]
     C --> D[OpenRouter LLM]
     C --> E[Virtual FS Engine]
-    E --> F[(PostgreSQL)]
+    E --> F[(PostgreSQL + pgvector)]
     B --> F
 ```
 
-**Layers:**
-- **Browser** — Chat UI with session sidebar, document list, model selector
-- **Next.js API** — Routes for `/api/chat`, `/api/sessions`, `/api/documents`
-- **DeepAgent** — LangGraph agent with 5 tools (execute_command, create_task, update_task, create_event, search_docs)
-- **Virtual FS Engine** — TreeBuilder + CacheLayer + GrepOptimizer + just-bash
-- **PostgreSQL** — Stores files, sessions, messages, tasks, events
-- **OpenRouter** — LLM gateway (Kimi K2, Claude, GPT-4o)
+## Two Modes: VFS vs RAG
 
-## How It Works
-
-### Flow 1: User Chats with the Agent
+The UI has a toggle to switch between modes. Both read from the same `documents` table.
 
 ```mermaid
-sequenceDiagram
-    User->>API: Send message + project_id
-    API->>DB: Save user message
-    API->>Agent: Invoke with history
-    Agent->>LLM: Decide which tool to use
-    LLM-->>Agent: execute_command "ls /"
-    Agent->>VFS: ls /
-    VFS-->>Agent: docs/ src/ uploads/
-    Agent->>LLM: Format response
-    LLM-->>Agent: Response text
-    API->>DB: Save assistant message
-    API-->>User: Rendered markdown
+flowchart TB
+    subgraph VFS["VFS Mode (Multi-step)"]
+        V1[User asks question] --> V2[Agent thinks]
+        V2 --> V3["Tool: run_vfs ls /uploads"]
+        V3 --> V4["Tool: run_vfs cat /file.pdf"]
+        V4 --> V5[Agent responds]
+    end
+
+    subgraph RAG["RAG Mode (Single-step)"]
+        R1[User asks question] --> R2[Embed query]
+        R2 --> R3[pgvector similarity search]
+        R3 --> R4[Inject top-5 docs into prompt]
+        R4 --> R5[Agent responds]
+    end
 ```
 
-### Flow 2: User Uploads a Document
+### Token Consumption Comparison
 
-```mermaid
-sequenceDiagram
-    User->>Sidebar: Click Upload File
-    Sidebar->>API: POST /api/documents
-    API->>DB: INSERT into documents table
-    API-->>Sidebar: Success
-    Sidebar->>Sidebar: Refresh file list
-    User->>Agent: Read my uploaded file
-    Agent->>VFS: cat /uploads/file.md
-    VFS->>DB: SELECT content
-    VFS-->>Agent: File contents
-    Agent-->>User: Here is what the file says
-```
+Real-world test: "Compare 2 uploaded ebooks" (Art of War PDF + 48 Laws PDF)
 
-### Flow 3: Grep Search (Coarse to Fine)
+| Metric | VFS Mode | RAG Mode |
+|--------|---------|---------|
+| **Prompt tokens** | 1.3K | 1.0K |
+| **Completion tokens** | 85 | 96 |
+| **Total tokens** | 1.4K | 1.0K |
+| **LLM calls** | 2-3 (tool loop) | 1 (single call) |
+| **Latency** | Higher (sequential tools) | Lower (one round-trip) |
 
-```mermaid
-sequenceDiagram
-    Agent->>GrepOptimizer: grep "TODO" /src
-    GrepOptimizer->>DB: ILIKE coarse filter
-    DB-->>GrepOptimizer: Candidate files
-    GrepOptimizer->>Cache: Prefetch contents
-    GrepOptimizer->>GrepOptimizer: Regex fine filter
-    GrepOptimizer-->>Agent: Matched lines
-```
+### Pros & Cons
+
+| Aspect | VFS (Virtual File System) | RAG (Retrieval-Augmented Generation) |
+|--------|--------------------------|--------------------------------------|
+| **How it works** | Agent browses files with `ls`, `cat`, `grep` — multiple LLM calls | Relevant chunks retrieved via embedding similarity, injected into prompt — single LLM call |
+| **Token efficiency** | Higher cost — each tool call is a full LLM round-trip with growing context | Lower cost — context retrieved upfront, single inference |
+| **Accuracy** | High — agent reads exact file content, can explore freely | Depends on embedding quality — may miss relevant sections |
+| **Flexibility** | Agent can discover files it didn't know about (`find`, `grep`) | Limited to top-K retrieved chunks, no exploration |
+| **Large files** | Reads full content via `cat` — accurate but token-heavy | Truncated to 2,000 chars per chunk — may lose detail |
+| **Best for** | Exploratory questions ("what files exist?", "search for X") | Direct questions about known content ("summarize this PDF") |
+| **Latency** | Slower — multiple sequential API calls | Faster — single API call after retrieval |
+| **Scaling** | Tokens grow with file count and tool calls | Tokens grow with top-K and chunk size (predictable) |
+
+### When to Use Which
+
+- **VFS**: When the user doesn't know what's in the files and needs the agent to explore
+- **RAG**: When the user asks about specific content and wants fast, token-efficient answers
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 16 + Tailwind CSS + shadcn/ui |
-| Agent | DeepAgents (LangGraph) |
+| Agent | LangGraph ReAct Agent |
 | LLM | OpenRouter (Kimi K2, Claude, GPT-4o) |
-| Virtual FS | just-bash + custom IFileSystem |
-| Database | PostgreSQL + Drizzle ORM |
-
-## Project Structure
-
-```
-chatbot/
-├── src/
-│   ├── app/                    # Next.js pages + API routes
-│   │   ├── page.tsx            # Main chat page
-│   │   └── api/
-│   │       ├── chat/           # POST - agent conversation
-│   │       ├── documents/      # GET/POST - file upload & list
-│   │       └── sessions/       # CRUD - chat sessions
-│   ├── components/             # UI components
-│   │   ├── chat/               # ChatBubble, ChatInput, ChatHeader
-│   │   ├── session/            # SessionSidebar, DocumentList
-│   │   └── common/             # EmptyState, TypingIndicator
-│   ├── features/               # Business logic hooks
-│   │   ├── chat/               # useChat, useSendMessage
-│   │   ├── session/            # useSessions, useSessionManager
-│   │   └── documents/          # useDocuments
-│   └── lib/
-│       ├── agent/              # DeepAgent, tools, system prompt
-│       ├── db/                 # Drizzle schema + connection
-│       └── fs/                 # TreeBuilder, VirtualFs, GrepOptimizer, CacheLayer
-├── scripts/
-│   ├── seed-project.ts         # Seed demo data
-│   └── test-repl.ts            # Terminal REPL test
-├── drizzle/                    # SQL migrations
-└── docker-compose.yml          # Local PostgreSQL
-```
+| Virtual FS | Custom IFileSystem (TreeBuilder + CacheLayer + GrepOptimizer) |
+| Vector DB | PostgreSQL + pgvector (cosine similarity, IVFFlat index) |
+| Embeddings | OpenAI text-embedding-3-small via OpenRouter |
+| Streaming | Server-Sent Events (SSE) with live tool activity |
 
 ## Database Schema
 
 ```mermaid
 erDiagram
-    projects ||--o{ documents : contains
-    projects ||--o{ todos : has
-    projects ||--o{ events : has
+    documents {
+        uuid id PK
+        text path UK
+        text name
+        text type
+        text content
+        vector embedding
+        int size_bytes
+    }
     sessions ||--o{ messages : contains
+    sessions {
+        uuid id PK
+        text title
+    }
+    messages {
+        uuid id PK
+        uuid session_id FK
+        text role
+        text content
+        int prompt_tokens
+        int completion_tokens
+        int total_tokens
+        text mode
+    }
 ```
 
-| Table | Columns |
-|-------|---------|
-| **projects** | id, name, slug, description, owner_id, metadata |
-| **documents** | id, project_id, path, name, type, content, chunk_index, size_bytes |
-| **todos** | id, project_id, title, status, priority, assignee, due_date, tags |
-| **events** | id, project_id, title, start_time, end_time, location, attendees |
-| **sessions** | id, title, created_at |
-| **messages** | id, session_id, role, content, model |
+## Features
+
+- Upload documents (PDF, text, code) — auto-extracted and embedded
+- VFS mode: agent browses with `ls`, `cat`, `grep`, `find`
+- RAG mode: pgvector similarity search, single LLM call
+- Token tracking per message (prompt/completion/total)
+- Mode badge on each response (VFS orange / RAG blue)
+- Live activity streaming (SSE: "Running: ls /uploads", "Thinking...")
+- Dark mode, markdown rendering with GFM tables
+- Session management (create, switch, delete)
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 14+
+- PostgreSQL 14+ with pgvector extension
 
 ### Setup
 
@@ -143,25 +135,19 @@ cd chatbot
 # Install dependencies
 npm install
 
-# Start PostgreSQL (Docker)
-docker compose up -d
-# Or use an existing local PostgreSQL
-
 # Configure environment
 cp .env.example .env.local
-# Edit .env.local with your OpenRouter API key and DATABASE_URL
+# Edit with your OpenRouter API key and DATABASE_URL
 
 # Run database migrations
 npm run db:migrate
 
-# (Optional) Seed demo project data
-npm run db:seed
+# Enable pgvector (if not already)
+psql -d chatbot -c "CREATE EXTENSION IF NOT EXISTS vector"
 
-# Start development server
+# Start dev server
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000).
 
 ### Environment Variables
 
@@ -171,30 +157,31 @@ DEFAULT_MODEL=moonshotai/kimi-k2
 DATABASE_URL=postgresql://user@localhost:5432/chatbot
 ```
 
-## Agent Tools
+### Scripts
 
-| Tool | What it does |
-|------|-------------|
-| `execute_command` | Run bash commands (`ls`, `cat`, `grep`, `find`) in the Virtual FS |
-| `create_task` | Create a todo with title, priority, assignee, due date |
-| `update_task` | Update task status, priority, or assignee |
-| `create_event` | Schedule a calendar event |
-| `search_docs` | Full-text search across all project documents |
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run db:migrate` | Apply database migrations |
+| `npm run db:seed` | Seed demo documents |
 
-## Key Design Decisions
+## How It Works
 
-1. **Files in database, not disk** — enables the agent to manage context without filesystem access, portable to serverless (AWS Lambda)
-2. **Tree bootstrapped once** — full directory tree loaded into memory on init, `ls`/`find` are instant (no DB calls)
-3. **Grep: coarse then fine** — PostgreSQL ILIKE narrows candidates, in-memory regex does precise matching
-4. **30-second cache** — prevents redundant DB reads during multi-step agent reasoning loops
-5. **OpenRouter for LLM** — switch between Kimi K2, Claude, GPT-4o without code changes
+### Upload Flow
 
-## Future Roadmap
+```
+Upload PDF → Extract text (pdf-parse) → Store in documents table → Generate embedding (OpenRouter) → Store vector in pgvector
+```
 
-- [ ] SSE streaming (token-by-token output)
-- [ ] File browser tree view in UI
-- [ ] Tool call visualization in chat
-- [ ] Semantic search via pgvector
-- [ ] RBAC (role-based file access)
-- [ ] AWS Lambda deployment
-- [ ] Redis cache for production scale
+### VFS Chat Flow
+
+```
+User question → Create ReAct agent with VFS tools → Agent calls run_vfs (ls, cat, grep) → Multiple LLM rounds → Response with token count
+```
+
+### RAG Chat Flow
+
+```
+User question → Embed query → pgvector cosine search → Inject top-5 chunks → Single LLM call → Response with token count
+```
