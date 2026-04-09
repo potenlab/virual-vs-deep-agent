@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
+import { getDefaultProjectId } from "@/lib/default-project";
 
-// GET /api/documents?project_id=xxx — list all documents in a project
-export async function GET(request: NextRequest) {
-  const projectId = request.nextUrl.searchParams.get("project_id");
-  if (!projectId) {
-    return NextResponse.json({ error: "project_id is required" }, { status: 400 });
-  }
+// GET /api/documents — list all documents
+export async function GET() {
+  const projectId = await getDefaultProjectId();
 
   const rows = await db
     .select({
@@ -26,23 +24,40 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ documents: rows });
 }
 
-// POST /api/documents — upload a file to the virtual FS
+// POST /api/documents — upload a file
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const projectId = formData.get("project_id") as string | null;
     const uploadPath = formData.get("path") as string | null;
 
-    if (!file || !projectId) {
+    if (!file) {
+      return NextResponse.json({ error: "file is required" }, { status: 400 });
+    }
+
+    // Max 20MB
+    const MAX_SIZE = 20 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "file and project_id are required" },
+        { error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 20MB.` },
         { status: 400 },
       );
     }
 
-    const content = await file.text();
+    const projectId = await getDefaultProjectId();
     const fileName = file.name;
+    let content: string;
+
+    if (fileName.toLowerCase().endsWith(".pdf")) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require("pdf-parse-new") as (buf: Buffer) => Promise<{ text: string }>;
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const pdf = await pdfParse(buffer);
+      content = pdf.text;
+    } else {
+      content = await file.text();
+    }
+
     const filePath = uploadPath
       ? `${uploadPath.replace(/\/$/, "")}/${fileName}`
       : `/uploads/${fileName}`;
@@ -110,8 +125,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("[POST /api/documents]", error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to upload document" },
+      { error: "Failed to upload document", detail },
       { status: 500 },
     );
   }

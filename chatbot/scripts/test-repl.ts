@@ -38,10 +38,11 @@ async function main() {
   const messages: Message[] = [makeMessage("user", testQuestion)];
 
   console.log(`[smoke-test] You: ${testQuestion}`);
-  const testResponse = await invokeAgent(agent, messages);
-  console.log(`[smoke-test] Agent: ${testResponse}\n`);
+  const testResult = await invokeAgent(agent, messages);
+  console.log(`[smoke-test] Agent: ${testResult.content}`);
+  console.log(`[tokens] ${testResult.tokenUsage.promptTokens} in | ${testResult.tokenUsage.completionTokens} out | ${testResult.tokenUsage.totalTokens} total\n`);
 
-  messages.push(makeMessage("assistant", testResponse));
+  messages.push(makeMessage("assistant", testResult.content));
 
   // --- Interactive REPL loop ---
   const rl = readline.createInterface({
@@ -67,9 +68,10 @@ async function main() {
       messages.push(makeMessage("user", trimmed));
 
       try {
-        const response = await invokeAgent(agent, messages);
-        console.log(`Agent: ${response}\n`);
-        messages.push(makeMessage("assistant", response));
+        const result = await invokeAgent(agent, messages);
+        console.log(`Agent: ${result.content}`);
+        console.log(`[tokens] ${result.tokenUsage.promptTokens} in | ${result.tokenUsage.completionTokens} out | ${result.tokenUsage.totalTokens} total\n`);
+        messages.push(makeMessage("assistant", result.content));
       } catch (err) {
         console.error("Error invoking agent:", err);
       }

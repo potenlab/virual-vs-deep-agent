@@ -10,6 +10,7 @@ export interface Message {
   content: string;
   model?: string;
   timestamp: string;
+  tokenUsage?: TokenUsage;
 }
 
 export interface ChatRequest {
@@ -19,10 +20,17 @@ export interface ChatRequest {
   project_id?: string;
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface ChatResponse {
   session_id: string;
   message: string;
   model: string;
+  token_usage?: TokenUsage;
 }
 
 export interface SessionsResponse {

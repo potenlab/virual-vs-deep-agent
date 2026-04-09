@@ -11,14 +11,14 @@ interface DocumentEntry {
   createdAt: string | null;
 }
 
-export function useDocuments(projectId: string) {
+export function useDocuments() {
   const [documents, setDocuments] = useState<DocumentEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/documents?project_id=${projectId}`);
+      const res = await fetch("/api/documents");
       if (!res.ok) return;
       const data = await res.json();
       setDocuments(data.documents ?? []);
@@ -27,7 +27,7 @@ export function useDocuments(projectId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, []);
 
   return { documents, isLoading, fetchDocuments };
 }

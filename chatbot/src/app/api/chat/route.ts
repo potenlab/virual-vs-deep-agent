@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/session-store";
 import { createAgent, invokeAgent } from "@/lib/agent/agent";
 import { MODEL_LIST, DEFAULT_MODEL } from "@/lib/constants";
+import { getDefaultProjectId } from "@/lib/default-project";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,13 +68,15 @@ export async function POST(request: NextRequest) {
     const history = await store.getMessages(sessionId);
 
     // --- Invoke agent ---
-    const agent = await createAgent(usedModel, body.project_id);
-    const assistantContent = await invokeAgent(agent, history);
+    // Always use VFS mode with default project
+    const projectId = await getDefaultProjectId();
+    const agent = await createAgent(usedModel, projectId);
+    const agentResponse = await invokeAgent(agent, history);
 
     // --- Add assistant message to store ---
     await store.addMessage(sessionId, {
       role: "assistant",
-      content: assistantContent,
+      content: agentResponse.content,
       model: usedModel,
     });
 
@@ -87,8 +90,9 @@ export async function POST(request: NextRequest) {
     // --- Return response ---
     return NextResponse.json({
       session_id: sessionId,
-      message: assistantContent,
+      message: agentResponse.content,
       model: usedModel,
+      token_usage: agentResponse.tokenUsage,
     });
   } catch (error) {
     console.error("[POST /api/chat]", error);

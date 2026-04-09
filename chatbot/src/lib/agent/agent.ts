@@ -17,14 +17,14 @@ export async function createAgent(model?: string, projectId?: string) {
   if (projectId) {
     // VFS mode: initialize filesystem and tools
     const { VirtualFs } = await import("@/lib/fs/virtual-fs");
-    const { Bash } = await import("just-bash");
     const { createTools } = await import("./tools");
 
     const fs = new VirtualFs(projectId);
     await fs.initialize();
 
-    const bash = new Bash({ fs: fs as any, cwd: "/" });
-    const tools = createTools({ projectId, fs, bash });
+    console.log(`[VFS] Initialized for project ${projectId}, ${fs.treeBuilder.allFiles().length} files`);
+
+    const tools = createTools({ projectId, fs });
 
     // Get project name from DB
     const { db } = await import("@/lib/db");
@@ -52,68 +52,90 @@ export async function createAgent(model?: string, projectId?: string) {
   });
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface AgentResponse {
+  content: string;
+  tokenUsage: TokenUsage;
+}
+
 /**
- * Invokes the agent with a conversation history and returns the assistant's response.
- * @param agent - The DeepAgent instance created by createAgent()
- * @param messages - Array of conversation messages in our internal format
- * @returns The assistant's response content as a string
+ * Invokes the agent with a conversation history and returns the response + token usage.
  */
 export async function invokeAgent(
   agent: Awaited<ReturnType<typeof createAgent>>,
   messages: Message[]
-): Promise<string> {
-  // Convert our Message[] type to LangChain message format
+): Promise<AgentResponse> {
   const langchainMessages = messages.map((msg) => ({
     role: msg.role,
     content: msg.content,
   }));
 
-  // Invoke the agent with the message history
   const result = await agent.invoke({ messages: langchainMessages });
-
-  // Extract the last assistant message content from the result
   const resultMessages = result.messages;
 
-  if (!resultMessages || resultMessages.length === 0) {
-    return "No response generated.";
-  }
+  // Aggregate token usage from ALL AI messages (including tool-call steps)
+  let promptTokens = 0;
+  let completionTokens = 0;
 
-  // Find the last message from the assistant (AIMessage in LangChain)
-  // Iterate from the end to find the last non-tool, non-human message
-  for (let i = resultMessages.length - 1; i >= 0; i--) {
-    const msg = resultMessages[i];
+  let content = "No response generated.";
 
-    // LangGraph messages have a _getType() method or a type property
-    // AIMessage type is "ai", HumanMessage is "human", ToolMessage is "tool"
-    const msgType =
-      typeof msg._getType === "function"
-        ? msg._getType()
-        : (msg as unknown as Record<string, unknown>).type;
+  if (resultMessages && resultMessages.length > 0) {
+    for (let i = resultMessages.length - 1; i >= 0; i--) {
+      const msg = resultMessages[i];
+      const msgType =
+        typeof msg._getType === "function"
+          ? msg._getType()
+          : (msg as unknown as Record<string, unknown>).type;
 
-    if (msgType === "ai") {
-      // Content can be a string or an array of content blocks
-      if (typeof msg.content === "string") {
-        return msg.content;
+      // Collect token usage from every AI message
+      if (msgType === "ai") {
+        const usage =
+          (msg as unknown as Record<string, unknown>).usage_metadata as Record<string, number> | undefined;
+        if (usage) {
+          promptTokens += usage.input_tokens ?? 0;
+          completionTokens += usage.output_tokens ?? 0;
+        }
       }
+    }
 
-      // Handle array content (e.g., multi-part messages with text and tool calls)
-      if (Array.isArray(msg.content)) {
-        const textParts = msg.content
-          .filter(
-            (part: { type: string; text?: string }) => part.type === "text"
-          )
-          .map((part: { type: string; text?: string }) => part.text ?? "")
-          .join("");
-        return textParts || "No response generated.";
+    // Extract text content from the last AI message
+    for (let i = resultMessages.length - 1; i >= 0; i--) {
+      const msg = resultMessages[i];
+      const msgType =
+        typeof msg._getType === "function"
+          ? msg._getType()
+          : (msg as unknown as Record<string, unknown>).type;
+
+      if (msgType === "ai") {
+        if (typeof msg.content === "string" && msg.content) {
+          content = msg.content;
+          break;
+        }
+        if (Array.isArray(msg.content)) {
+          const textParts = msg.content
+            .filter((part: { type: string; text?: string }) => part.type === "text")
+            .map((part: { type: string; text?: string }) => part.text ?? "")
+            .join("");
+          if (textParts) {
+            content = textParts;
+            break;
+          }
+        }
       }
     }
   }
 
-  // Fallback: return the content of the very last message
-  const lastMsg = resultMessages[resultMessages.length - 1];
-  if (typeof lastMsg.content === "string") {
-    return lastMsg.content;
-  }
-
-  return "No response generated.";
+  return {
+    content,
+    tokenUsage: {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+    },
+  };
 }

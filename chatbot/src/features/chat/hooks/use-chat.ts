@@ -56,6 +56,7 @@ export function useChat(): UseChatReturn {
           content: response.message,
           model: response.model,
           timestamp: new Date().toISOString(),
+          tokenUsage: response.token_usage,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);

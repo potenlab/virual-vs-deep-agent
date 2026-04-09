@@ -31,7 +31,6 @@ interface SessionSidebarProps {
   onOpenChange: (open: boolean) => void;
   isMobile: boolean;
   // Document props
-  projectId: string;
   documents: DocumentEntry[];
   documentsLoading: boolean;
   onDocumentUploadComplete: () => void;
@@ -43,7 +42,6 @@ function SidebarContent({
   onSelectSession,
   onDeleteSession,
   onNewChat,
-  projectId,
   documents,
   documentsLoading,
   onDocumentUploadComplete,
@@ -98,7 +96,6 @@ function SidebarContent({
       <div className="flex-1 min-h-0">
         <DocumentList
           documents={documents}
-          projectId={projectId}
           isLoading={documentsLoading}
           onUploadComplete={onDocumentUploadComplete}
         />

@@ -16,14 +16,12 @@ interface DocumentEntry {
 
 interface DocumentListProps {
   documents: DocumentEntry[];
-  projectId: string;
   isLoading: boolean;
   onUploadComplete: () => void;
 }
 
 export function DocumentList({
   documents,
-  projectId,
   isLoading,
   onUploadComplete,
 }: DocumentListProps) {
@@ -37,7 +35,6 @@ export function DocumentList({
       try {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("project_id", projectId);
         formData.append("path", "/uploads");
 
         const res = await fetch("/api/documents", {
@@ -46,8 +43,8 @@ export function DocumentList({
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Upload failed");
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || data.error || "Upload failed");
         }
 
         const data = await res.json();
@@ -59,7 +56,7 @@ export function DocumentList({
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [projectId, onUploadComplete],
+    [onUploadComplete],
   );
 
   const files = documents.filter((d) => d.type === "file");
@@ -77,7 +74,7 @@ export function DocumentList({
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".txt,.md,.ts,.tsx,.js,.jsx,.json,.csv,.html,.css,.py,.yaml,.yml,.toml,.xml,.sql,.sh,.log"
+        accept=".txt,.md,.ts,.tsx,.js,.jsx,.json,.csv,.html,.css,.py,.yaml,.yml,.toml,.xml,.sql,.sh,.log,.pdf"
         onChange={handleUpload}
       />
 

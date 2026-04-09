@@ -171,14 +171,7 @@ export class VirtualFs {
     this.cache.delete(`file:${normalized}`);
   }
 
-  async stat(
-    path: string,
-  ): Promise<{
-    isFile: boolean;
-    isDirectory: boolean;
-    size: number;
-    mtime: Date;
-  }> {
+  async stat(path: string) {
     const normalized = normalizePath(path);
     const node = this.tree.stat(normalized);
     if (!node) throw new Error(`ENOENT: '${normalized}' not found`);
@@ -186,8 +179,10 @@ export class VirtualFs {
     return {
       isFile: node.type === "file",
       isDirectory: node.type === "directory",
+      isSymbolicLink: false,
       size: node.size,
       mtime,
+      birthtime: mtime,
     };
   }
 
@@ -203,11 +198,11 @@ export class VirtualFs {
     return this.tree.exists(normalizePath(path));
   }
 
-  async symlink(): Promise<void> {
+  async symlink(_target: string, _linkPath: string): Promise<void> {
     throw new Error("Symlinks not supported");
   }
 
-  async readlink(): Promise<void> {
+  async readlink(_path: string): Promise<string> {
     throw new Error("Symlinks not supported");
   }
 

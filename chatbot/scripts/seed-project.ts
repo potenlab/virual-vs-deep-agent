@@ -10,6 +10,7 @@ import {
 } from "../src/lib/db/schema";
 
 const OWNER_ID = "00000000-0000-0000-0000-000000000001";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 async function main() {
   const pool = new Pool({
@@ -23,6 +24,7 @@ async function main() {
   const [project] = await db
     .insert(projects)
     .values({
+      id: PROJECT_ID,
       name: "PotenLab MVP",
       slug: "potenlab-mvp",
       description: "Project management tool with AI assistant",
